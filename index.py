@@ -15,5 +15,6 @@ for filename in os.listdir('events'):
 for filename in os.listdir('commands'):
     if filename.endswith('.py'):
         client.load_extension(f'commands.{filename[:-3]}')
-token = config("TOKEN")
+
+token = config("TOKEN_BOT")
 client.run(token)
