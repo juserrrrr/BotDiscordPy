@@ -9,8 +9,8 @@ class JoinServer(commands.Cog):
     async def on_member_join(self,member):
         channelDoor = self.client.get_channel(919076619451269160)
         embed_message = discord.Embed(
-            title = "🏃‍♂️ │ Bem-vindo!",
-            description = f"{member.mention} acaba entrar para o {member.guild.name}.",
+            title = "🎉 │ Bem-vindo!",
+            description = f"{member.mention} acaba de entrar para o {member.guild.name}.",
             color = 0x00FF23
         )
         embed_message.set_thumbnail(url = member.avatar_url_as(format = 'png'))
@@ -20,7 +20,7 @@ class JoinServer(commands.Cog):
     async def on_member_remove(self,member):
         channelDoor = self.client.get_channel(919076619451269160)
         embed_message = discord.Embed(
-            title = "🏃‍♂️ │ Até a proxima!",
+            title = "🏃 │ Até a proxima!",
             description = f"{member.mention} acaba de sair do {member.guild.name}.",
             color = 0xFF0004
         )
