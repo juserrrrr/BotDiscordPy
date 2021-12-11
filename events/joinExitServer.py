@@ -13,7 +13,7 @@ class JoinServer(commands.Cog):
             description = f"{member.mention} acaba entrar para o {member.guild.name}.",
             color = 0x00FF23
         )
-        embed_message.set_thumbnail(url = member.avatar_url_as(format = 'png',size=1080))
+        embed_message.set_thumbnail(url = member.avatar_url_as(format = 'png'))
         message = await channelDoor.send(embed = embed_message)
 
     @commands.Cog.listener()
@@ -24,7 +24,7 @@ class JoinServer(commands.Cog):
             description = f"{member.mention} acaba de sair do {member.guild.name}.",
             color = 0xFF0004
         )
-        embed_message.set_thumbnail(url = member.avatar_url_as(format = 'png',size=1080))
+        embed_message.set_thumbnail(url = member.avatar_url_as(format = 'png'))
         message = await channelDoor.send(embed = embed_message)
 
 def setup(client):
