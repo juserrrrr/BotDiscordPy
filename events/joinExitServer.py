@@ -9,7 +9,7 @@ class JoinServer(commands.Cog):
     async def on_member_join(self,member):
         channelDoor = self.client.get_channel(919076619451269160)
         embed_message = discord.Embed(
-            title = "🎉 │ Bem-vindo!",
+            title = "🎉 │ Bem-vindo(a)!",
             description = f"{member.mention} acaba de entrar para o {member.guild.name}.",
             color = 0x00FF23
         )
