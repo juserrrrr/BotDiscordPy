@@ -9,14 +9,14 @@ class Ready(commands.Cog):
 
     async def precenses_update(self):#Lembrar de atualizar isso depois
         while not self.client.is_closed():
-            timer = 10
+            timer = 2
             await self.client.change_presence(activity=discord.Streaming(name="Estou de volta",url="https://www.twitch.tv/juserrrrr"))
             await asyncio.sleep(timer)
             await self.client.change_presence(activity=discord.Game(name="v0.1"))
             await asyncio.sleep(timer)
             await self.client.change_presence(activity=discord.Game(name="prefixo: tb!"))
             await asyncio.sleep(timer)
-            await self.client.change_presence(activity=discord.Streaming(name=f"{self.client.guild.members} membros",url="https://www.twitch.tv/juserrrrr"))
+            await self.client.change_presence(activity=discord.Streaming(name=f"{len(self.client.users)} membros",url="https://www.twitch.tv/juserrrrr"))
             await asyncio.sleep(timer)
     
     @commands.Cog.listener()
