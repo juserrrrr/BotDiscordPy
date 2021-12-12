@@ -16,6 +16,7 @@ class Ready(commands.Cog):
             await asyncio.sleep(timer)
             await self.client.change_presence(activity=discord.Game(name="prefixo: tb!"))
             await asyncio.sleep(timer)
+            await self.client.change_presence(activity=discord.Streaming(name=f"{self.client.guild.members} membros",url="https://www.twitch.tv/juserrrrr"))
     
     @commands.Cog.listener()
     async def on_ready(self):
