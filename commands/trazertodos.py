@@ -1,5 +1,4 @@
 import discord
-from discord import channel
 from discord.ext import commands
 
 class PullAll(commands.Cog):

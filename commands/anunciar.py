@@ -14,7 +14,7 @@ class Anunciar(commands.Cog):
             color = 0xFF0004
         )
         embed_message.set_thumbnail(url = ctx.guild.icon_url_as(format='png'))
-        message = await ctx.send(embed = embed_message)
+        await ctx.send(embed = embed_message)
         await ctx.send('||@everyone||')
 
 def setup(client):

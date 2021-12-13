@@ -1,6 +1,5 @@
 import discord
-from time import sleep
-from discord.channel import _single_delete_strategy
+import asyncio
 from discord.ext import commands
 
 class Apagar(commands.Cog):
@@ -18,7 +17,7 @@ class Apagar(commands.Cog):
         )
         embed_message.set_thumbnail(url = ctx.guild.icon_url_as(format='png'))
         message = await ctx.send(embed = embed_message)
-        sleep(2)
+        asyncio.sleep(2)
         await message.delete()
 
 def setup(client):
