@@ -5,4 +5,4 @@ def readFile():
 
 def saveFile(save):
     with open('prefix_servers.json','w') as file:
-        json.dump(save,file)
+        json.dump(save,file,indent=4)
