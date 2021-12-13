@@ -1,5 +1,5 @@
 import discord
-import asyncio
+import time
 from discord.ext import commands
 
 class Apagar(commands.Cog):
@@ -17,7 +17,7 @@ class Apagar(commands.Cog):
         )
         embed_message.set_thumbnail(url = ctx.guild.icon_url_as(format='png'))
         message = await ctx.send(embed = embed_message)
-        asyncio.sleep(2)
+        time.sleep(2)
         await message.delete()
 
 def setup(client):
