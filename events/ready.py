@@ -24,12 +24,12 @@ class Ready(commands.Cog):# MELHORAR ESSE CODIGO TB POR FAVOR!
         for guild in self.client.guilds:
             list_guild.append(guild.id) 
         return list_guild
+
     def clearInactiveServers(self,prefixs):
-        
         change = False
         list_guild = Ready.getAll_id_servers(self)
         for id in list(prefixs.keys()):
-            if not id in list_guild:
+            if not int(id) in list_guild:
                 change = True
                 del prefixs[id]
         if change:
