@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands
 import asyncio
-import json
 from mechanics import saveFile,readFile
 
 class Ready(commands.Cog):# MELHORAR ESSE CODIGO TB POR FAVOR!

@@ -9,11 +9,17 @@ class Error(commands.Cog):
     
     @commands.Cog.listener()
     async def on_command_error(self,ctx,error):
+        await ctx.message.delete()
         if isinstance(error,commands.CommandNotFound):
-            await ctx.message.delete()
-            message = await ctx.send(f'{ctx.author.mention} Esse comando não existe!')
-            await asyncio.sleep(2)
-            await message.delete()
+            message_error = f'{ctx.author.mention} esse comando não existe!'
+        elif isinstance(error, commands.MissingRequiredArgument):
+            message_error = f'{ctx.author.mention} por favor, é preciso passar um argumento para o comando!'
+        else:
+            print(error)
+
+        message = await ctx.send(message_error)
+        await message.delete(delay=3)  
+
         
 def setup(client):
     client.add_cog(Error(client))

@@ -11,6 +11,7 @@ class Unmute(commands.Cog):
         if not ctx.author.voice is None and ctx.author.voice.mute:
             await ctx.author.edit(mute=False)
             description_text = "Você foi desmutado."
+
         else:
             description_text = "Você não está em um canal de voz ou não está mutado."
 
@@ -20,8 +21,8 @@ class Unmute(commands.Cog):
             color = 0xFF0004
         )
         embed_message.set_thumbnail(url = ctx.guild.icon_url_as(format='png'))
-        msg = await ctx.send(embed = embed_message)  
-        await msg.delete(delay=2)
+        message = await ctx.send(embed = embed_message)  
+        await message.delete(delay=2)
 
 def setup(client):
     client.add_cog(Unmute(client))

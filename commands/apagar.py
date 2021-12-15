@@ -1,5 +1,4 @@
 import discord
-import time
 from discord.ext import commands
 
 class Apagar(commands.Cog):
@@ -17,8 +16,8 @@ class Apagar(commands.Cog):
         )
         embed_message.set_thumbnail(url = ctx.guild.icon_url_as(format='png'))
         message = await ctx.send(embed = embed_message)
-        time.sleep(2)
-        await message.delete()
+        await message.delete(delay=2)
+
 
 def setup(client):
     client.add_cog(Apagar(client))
