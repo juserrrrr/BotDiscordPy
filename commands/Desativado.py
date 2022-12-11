@@ -4,11 +4,11 @@ import asyncio
 from random import randint
 
 
-class CriarPerson(commands.Cog):
+class Desativado(commands.Cog):
   def __init__(self,client):
     self.client = client
 
-  @commands.command(name='criarperson')
+  @commands.command(name='desativado')
   @commands.has_role(785650860125978635)
   async def criarPerson(self,ctx):
     #Funções
@@ -30,12 +30,11 @@ class CriarPerson(commands.Cog):
       # embed.set_thumbnail(url = ctx.author.display_avatar.replace(format='png').url)
       return embed
 
-    async def limparReaction(reaction,user):
-      await reaction.remove(user)
+    def checkAdd(reaction,user):
+      return str(reaction) == '🆗' and reaction.message.id == message_embed.id and not user in contador_players
 
-    def check(reaction,user):
-      asyncio.create_task(limparReaction(reaction,user))
-      return str(reaction) == '🆗' and not user in contador_players and reaction.message.id == message_embed.id
+    def checkRemove(reaction,user):
+      return str(reaction) == '🆗' and reaction.message.id == message_embed.id
 
     def checkDm(reaction,user):
       return str(reaction) == '✅' and reaction.message.id == dm_message.id
@@ -70,7 +69,7 @@ class CriarPerson(commands.Cog):
 
     async def reactionAddParticipation():
       while len(contador_players) < limite:
-          reaction,user = await self.client.wait_for('reaction_add',check= check,timeout=60)
+          reaction,user = await self.client.wait_for('reaction_add',check= checkAdd,timeout=60)
           if(user.voice != None):
             contador_players.append(user)
             confirmados = gerarConfirmados(contador_players)
@@ -78,6 +77,16 @@ class CriarPerson(commands.Cog):
             embed_edited = embedCreateMessage(confirmados,qnts_confirmados)
             await message_embed.edit(embed = embed_edited)
             await user.move_to(channel_aguardado)      
+      task2.cancel()
+
+    async def reactionRemoveParticipation():
+      while len(contador_players) < limite:
+          reaction,user = await self.client.wait_for('reaction_remove',check= checkRemove,timeout=60)
+          contador_players.remove(user)
+          confirmados = gerarConfirmados(contador_players)
+          qnts_confirmados = str(len(contador_players))
+          embed_edited = embedCreateMessage(confirmados,qnts_confirmados)
+          await message_embed.edit(embed = embed_edited)
 
     #Procedimentos
     limite = 2
@@ -93,7 +102,10 @@ class CriarPerson(commands.Cog):
     channel_aguardado = await self.client.fetch_channel(854680472206442537)
 
     try:
-      await asyncio.create_task(reactionAddParticipation())
+      async with asyncio.TaskGroup() as tg:
+        task1 = tg.create_task(reactionAddParticipation())
+        task2 = tg.create_task(reactionRemoveParticipation())
+
     except asyncio.TimeoutError:
       await message_embed.delete()
     else:
@@ -112,4 +124,4 @@ class CriarPerson(commands.Cog):
 
 
 async def setup(client):
-    await client.add_cog(CriarPerson(client))
+    await client.add_cog(Desativado(client))
