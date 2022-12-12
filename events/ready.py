@@ -21,6 +21,5 @@ class Ready(commands.Cog):# MELHORAR ESSE CODIGO TB POR FAVOR!
         self.client.loop.create_task(Ready.precenses_update(self))
         print(f"Entrei como o bot {self.client.user.name} e estou presente em {len(self.client.guilds)} {'servidor.' if len(self.client.guilds) == 1 else'servidores.'}")
 
-
 async def setup(client):
     await client.add_cog(Ready(client))
