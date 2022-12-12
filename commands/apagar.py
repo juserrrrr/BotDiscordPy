@@ -10,12 +10,12 @@ class Apagar(commands.Cog):
     async def apagar(self,interaction: discord.Interaction,quantidade:int):
         embed_message = discord.Embed(
             title = f"🎅 │ **{interaction.guild.name}     **",
-            description = f"**{quantidade} {'mensagem apagada' if quantidade == 1 else 'mensagens apagadas'} com sucesso!**",
+            description = f"**Apagando {quantidade} {'mensagem' if quantidade == 1 else 'mensagens'}!**",
             color = 0xFF0004
         )
         embed_message.set_thumbnail(url = interaction.guild.icon.replace(format="png").url)
-        await interaction.channel.purge(limit = quantidade,)
-        await interaction.response.send_message(embed = embed_message,ephemeral=True,delete_after=2)
+        await interaction.response.send_message(embed = embed_message,ephemeral=True,delete_after=5)
+        await interaction.channel.purge(limit = quantidade)
 
 
 async def setup(client):

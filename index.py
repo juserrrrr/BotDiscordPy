@@ -7,7 +7,6 @@ import asyncio
 load_dotenv("config.env")
 
 intents = discord.Intents.all()
-intents.members = True
 client = commands.Bot(command_prefix= None,intents = intents,help_command=None)
 
 async def loadEvents():
