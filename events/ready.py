@@ -6,12 +6,6 @@ class Ready(commands.Cog):# MELHORAR ESSE CODIGO TB POR FAVOR!
     def __init__(self,client):
         self.client = client
 
-    def getAll_id_servers(self): 
-        list_guild = []
-        for guild in self.client.guilds:
-            list_guild.append(guild.id) 
-        return list_guild
-
     async def precenses_update(self):#Lembrar de atualizar isso depois
         while not self.client.is_closed():
             timer = 20
@@ -27,6 +21,7 @@ class Ready(commands.Cog):# MELHORAR ESSE CODIGO TB POR FAVOR!
     @commands.Cog.listener()
     async def on_ready(self):
         await self.client.wait_until_ready()
+        await self.client.tree.sync()
         self.client.loop.create_task(Ready.precenses_update(self))
         print(f"Entrei como o bot {self.client.user.name} e estou presente em {len(self.client.guilds)} {'servidor.' if len(self.client.guilds) == 1 else'servidores.'}")
 

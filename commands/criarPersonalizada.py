@@ -1,5 +1,6 @@
 import discord
 from discord.ui import Button, View
+from discord import app_commands
 from discord.ext import commands
 from random import randint
 
@@ -8,9 +9,9 @@ class CriarPerson(commands.Cog):
     def __init__(self,client):
         self.client = client
 
-    @commands.command(name = 'criarperson')
+    @app_commands.command(name = 'criarperson')
     @commands.has_role(785650860125978635)
-    async def mensagem(self,ctx: commands.Context,limite: int):    
+    async def criarPerson(self,interaction: discord.Interaction,limite: int):    
       #Funções
       def gerarTextoUsers(usersPersonList):
         string = ''
@@ -47,7 +48,7 @@ class CriarPerson(commands.Cog):
 
       def embedMessage(confirmados):
         embed_message = discord.Embed(
-          title = f"**{ctx.guild.name} | Partida personalizada 🚩 **",
+          title = f"**{interaction.guild.name} | Partida personalizada 🚩 **",
           description = f"**Confirmados:**{confirmados}",
           color = 0xFF0004,
         )
@@ -56,7 +57,7 @@ class CriarPerson(commands.Cog):
 
       def embedMessageWinners(usersAzul,usersVermelho):
         embed_message = discord.Embed(
-          title = f"**{ctx.guild.name} | Partida personalizada 🚩 **",
+          title = f"**{interaction.guild.name} | Partida personalizada 🚩 **",
           description = f"**TimeAzul:**{usersAzul}\n**TimeVermelho:**{usersVermelho}\n**Ganhadores:**",
           color = 0xFF0004,
         )
@@ -105,7 +106,6 @@ class CriarPerson(commands.Cog):
       channel_principal = await self.client.fetch_channel(785653602928033802)
       channel_aguardado = await self.client.fetch_channel(854680472206442537)
       users_confirmados = []
-      await ctx.message.delete()  
 
       button_Entrar = Button(label="Entrar",style=discord.ButtonStyle.green, emoji="✔")
       button_Entrar.callback = buttonEntrarPerson
@@ -127,7 +127,7 @@ class CriarPerson(commands.Cog):
     
     
       embed_message = embedMessage('')
-      await ctx.send(embed = embed_message, view = view)       
+      await interaction.response.send_message(embed = embed_message, view = view)     
 
 async def setup(client):
     await client.add_cog(CriarPerson(client))

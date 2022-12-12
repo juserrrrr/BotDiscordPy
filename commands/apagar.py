@@ -7,16 +7,15 @@ class Apagar(commands.Cog):
     
     @commands.command(name = 'apagar')
     @commands.has_role(785650860125978635)
-    async def apagar(self,ctx,arg:int):
-        await ctx.message.delete()
-        await ctx.channel.purge(limit = arg)
+    async def apagar(self,interaction: discord.Interaction,quantidade:int):
+        await interaction.channel.purge(limit = quantidade)
         embed_message = discord.Embed(
-            title = f"🎅 │ **{ctx.guild.name}     **",
-            description = f"**{arg} {'mensagem apagada' if arg == 1 else 'mensagens apagadas'} com sucesso!**",
+            title = f"🎅 │ **{interaction.guild.name}     **",
+            description = f"**{quantidade} {'mensagem apagada' if quantidade == 1 else 'mensagens apagadas'} com sucesso!**",
             color = 0xFF0004
         )
-        embed_message.set_thumbnail(url = ctx.guild.icon.replace(format="png").url)
-        message = await ctx.send(embed = embed_message)
+        embed_message.set_thumbnail(url = interaction.guild.icon.replace(format="png").url)
+        message = await interaction.response.send_message(embed = embed_message)
         await message.delete(delay=2)
 
 
