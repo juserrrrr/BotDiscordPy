@@ -11,7 +11,7 @@ class Ready(commands.Cog):# MELHORAR ESSE CODIGO TB POR FAVOR!
             timer = 20
             await self.client.change_presence(activity=discord.Streaming(name="Estou de volta",url="https://www.twitch.tv/juserrrrr"))
             await asyncio.sleep(timer)
-            await self.client.change_presence(activity=discord.Streaming(name="v0.2",url="https://www.twitch.tv/juserrrrr"))
+            await self.client.change_presence(activity=discord.Streaming(name="v0.4",url="https://www.twitch.tv/juserrrrr"))
             await asyncio.sleep(timer)
             await self.client.change_presence(activity=discord.Streaming(name="prefixo: tb!",url="https://www.twitch.tv/juserrrrr"))
             await asyncio.sleep(timer)
