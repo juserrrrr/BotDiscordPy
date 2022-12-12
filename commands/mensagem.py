@@ -7,7 +7,6 @@ class Mensagem(commands.Cog):
         self.client = client
     
     @app_commands.command(name = 'mensagem',description="Encaminha uma mensagem para o canal onde foi executado o comando.")
-    @commands.has_role(785650860125978635)
     async def mensagem(self,interaction: discord.Interaction,*,mensagem:str):
         embed_message = discord.Embed(
             title = f"🎅 │ **{interaction.guild.name}**",

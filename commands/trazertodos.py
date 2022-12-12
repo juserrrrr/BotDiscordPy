@@ -7,7 +7,6 @@ class PullAll(commands.Cog):
         self.client = client
     
     @app_commands.command(name = 'puxartodos')
-    @commands.has_role(785650860125978635)
     async def pullall(self,interaction: discord.Interaction):
         channel_author = interaction.user.voice.channel
         for channel in interaction.guild.voice_channels:

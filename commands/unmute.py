@@ -8,7 +8,6 @@ class Unmute(commands.Cog):
         self.client = client
     
     @app_commands.command(name = 'unmute')
-    @commands.has_role(785650860125978635)
     async def unmute(self,interaction: discord.Interaction):
         if not interaction.user.voice is None and interaction.user.voice.mute:
             await interaction.user.edit(mute=False)
