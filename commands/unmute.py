@@ -7,7 +7,7 @@ class Unmute(commands.Cog):
     def __init__(self,client):
         self.client = client
     
-    @app_commands.command(name = 'unmute')
+    @app_commands.command(name = 'unmute',description="Desmusta o proprio usuario que digitou o comando.")
     async def unmute(self,interaction: discord.Interaction):
         if not interaction.user.voice is None and interaction.user.voice.mute:
             await interaction.user.edit(mute=False)

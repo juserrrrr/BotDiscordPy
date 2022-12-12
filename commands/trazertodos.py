@@ -6,7 +6,7 @@ class PullAll(commands.Cog):
     def __init__(self,client):
         self.client = client
     
-    @app_commands.command(name = 'puxartodos')
+    @app_commands.command(name = 'puxartodos',description="Puxa todos os usuários até o seu canal.")
     async def pullall(self,interaction: discord.Interaction):
         channel_author = interaction.user.voice.channel
         for channel in interaction.guild.voice_channels:
