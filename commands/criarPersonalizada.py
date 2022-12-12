@@ -9,7 +9,7 @@ class CriarPerson(commands.Cog):
     def __init__(self,client):
         self.client = client
 
-    @app_commands.command(name = 'criarperson')
+    @app_commands.command(name = 'criarperson',description="Cria uma mensagem para que os usuarios possam entrar no sorteio da partida personalizada")
     @commands.has_role(785650860125978635)
     async def criarPerson(self,interaction: discord.Interaction,limite: int):    
       #Funções
@@ -127,7 +127,8 @@ class CriarPerson(commands.Cog):
     
     
       embed_message = embedMessage('')
-      await interaction.response.send_message(embed = embed_message, view = view)     
+      await interaction.response.send_message(embed=discord.Embed(description="Comando executado com sucesso!",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
+      await interaction.channel.send(embed = embed_message, view = view)    
 
 async def setup(client):
     await client.add_cog(CriarPerson(client))

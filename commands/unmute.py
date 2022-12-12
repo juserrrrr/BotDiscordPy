@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
+import asyncio
 
 class Unmute(commands.Cog):
     def __init__(self,client):
@@ -22,8 +23,6 @@ class Unmute(commands.Cog):
             color = 0xFF0004
         )
         embed_message.set_thumbnail(url = interaction.guild.icon.replace(format="png").url)
-        message = await interaction.response.send_message(embed = embed_message)  
-        await message.delete(delay=2)
-
+        await interaction.response.send_message(embed=embed_message,ephemeral=True,delete_after=4)
 async def setup(client):
     await client.add_cog(Unmute(client))

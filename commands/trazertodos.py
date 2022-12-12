@@ -14,6 +14,7 @@ class PullAll(commands.Cog):
           if not channel == channel_author and len(channel.members) > 0:
             for member in channel.members:
                 await member.move_to(channel_author)
+        await interaction.response.send_message(embed=discord.Embed(description="Comando executado com sucesso!",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
 
 async def setup(client):
     await client.add_cog(PullAll(client))
