@@ -12,7 +12,6 @@ class Desmutar(commands.Cog):
         if not interaction.user.voice is None and interaction.user.voice.mute:
             await interaction.user.edit(mute=False)
             description_text = "Você foi desmutado."
-
         else:
             description_text = "Você não está em um canal de voz ou não está mutado."
 
