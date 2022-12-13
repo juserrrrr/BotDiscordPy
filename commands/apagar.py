@@ -17,6 +17,5 @@ class Apagar(commands.Cog):
         await interaction.response.send_message(embed = embed_message,ephemeral=True,delete_after=5)
         await interaction.channel.purge(limit = quantidade)
 
-
 async def setup(client):
     await client.add_cog(Apagar(client))

@@ -22,5 +22,6 @@ class Desmutar(commands.Cog):
         )
         embed_message.set_thumbnail(url = interaction.guild.icon.replace(format="png").url)
         await interaction.response.send_message(embed=embed_message,ephemeral=True,delete_after=4)
+        
 async def setup(client):
     await client.add_cog(Desmutar(client))

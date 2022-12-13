@@ -17,9 +17,5 @@ class Mensagem(commands.Cog):
         await interaction.response.send_message(embed=discord.Embed(description="Comando executado com sucesso!",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
         await interaction.channel.send(embed=embed_message)
         
-        
-        
-        
-
 async def setup(client):
     await client.add_cog(Mensagem(client))
