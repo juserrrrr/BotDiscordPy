@@ -38,7 +38,7 @@ class AddAmigo(commands.Cog):
       votos_sim = []
       cargoAmigoId = 785650860125978635
       canalAmigoId = 785650118413385760
-      limiteVotacao = 2
+      limiteVotacao = 5
       channelAmigos = interaction.guild.get_channel(canalAmigoId)
       embedText = embedMessage(0)
 
