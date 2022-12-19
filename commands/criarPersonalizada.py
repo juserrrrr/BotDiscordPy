@@ -10,6 +10,7 @@ class CriarPerson(commands.Cog):
         self.client = client
 
     @app_commands.command(name = 'criarperson',description="Cria uma mensagem para que os usuarios possam entrar no sorteio da partida personalizada.")
+    @app_commands.checks.has_role(item=785650860125978635)
     async def criarPerson(self,interaction: discord.Interaction,limite: int):    
       #Funções
       def gerarTextoUsers(usersPersonList):
