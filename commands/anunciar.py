@@ -17,10 +17,6 @@ class Anunciar(commands.Cog):
         await interaction.response.send_message(embed=discord.Embed(description="Comando executado com sucesso!",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
         await interaction.channel.send('||@everyone||')
         await interaction.channel.send(embed=embed_message)
-    
-    @anunciar.error
-    async def on_anunciar_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
-        print("erro")
 
 async def setup(client):
     await client.add_cog(Anunciar(client))
