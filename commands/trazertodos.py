@@ -7,7 +7,6 @@ class TrazerTodos(commands.Cog):
         self.client = client
     
     @app_commands.command(name = 'puxartodos',description="Puxa todos os usuários até o seu canal.")
-    @app_commands.checks.has_role(item=785650860125978635)
     async def trazerTodos(self,interaction: discord.Interaction):
         channel_author = interaction.user.voice.channel
         for channel in interaction.guild.voice_channels:

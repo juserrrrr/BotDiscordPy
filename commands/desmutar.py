@@ -8,7 +8,6 @@ class Desmutar(commands.Cog):
         self.client = client
     
     @app_commands.command(name = 'desmutar',description="Desmusta o proprio usuario que digitou o comando.")
-    @app_commands.checks.has_role(item=785650860125978635)
     async def desmutar(self,interaction: discord.Interaction):
         if not interaction.user.voice is None and interaction.user.voice.mute:
             await interaction.user.edit(mute=False)
@@ -23,6 +22,6 @@ class Desmutar(commands.Cog):
         )
         embed_message.set_thumbnail(url = interaction.guild.icon.replace(format="png").url)
         await interaction.response.send_message(embed=embed_message,ephemeral=True,delete_after=4)
-        
+           
 async def setup(client):
     await client.add_cog(Desmutar(client))

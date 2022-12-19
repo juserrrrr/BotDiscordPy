@@ -7,7 +7,6 @@ class Apagar(commands.Cog):
         self.client = client
     
     @app_commands.command(name = 'apagar',description="Apaga x mensagens no canal que foi executado o comando.")
-    @app_commands.checks.has_role(item=785650860125978635)
     async def apagar(self,interaction: discord.Interaction,quantidade:int):
         embed_message = discord.Embed(
             title = f"🎅 │ **{interaction.guild.name}     **",
