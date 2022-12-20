@@ -7,7 +7,7 @@ class AddAmigo(commands.Cog):
     def __init__(self,client: discord.Client):
         self.client = client
 
-    @app_commands.command(name = 'adcionaramigo',description="Adciona um usário ao cargo de amigos através de uma votação.")
+    @app_commands.command(name = 'adcionaramigo',description="Adciona um usuário ao cargo de amigos através de uma votação.")
     async def adcionarAmigo(self,interaction: discord.Interaction,usuario:discord.Member):
       #Funções
       def embedMessage(confirmados):
@@ -33,6 +33,13 @@ class AddAmigo(commands.Cog):
         else:
           await interaction.response.send_message(embed=discord.Embed(description="Você já votou.",color=interaction.guild.me.color),ephemeral=True,delete_after=2)
 
+      async def bttnNegarVotacao(interaction:discord.Interaction):
+        user = interaction.user
+        if not user in votos_confirmados_membros:
+          votos_confirmados_membros.append(user)
+          await interaction.response.send_message(embed=discord.Embed(description="Voto confirmado.",color=interaction.guild.me.color),ephemeral=True,delete_after=2)
+        else:
+          await interaction.response.send_message(embed=discord.Embed(description="Você já votou.",color=interaction.guild.me.color),ephemeral=True,delete_after=2)
       #Procedimentos
       votos_confirmados_membros = []
       votos_sim = []
@@ -46,16 +53,18 @@ class AddAmigo(commands.Cog):
       buttonSim =  Button(label="Sim",style=discord.ButtonStyle.success,emoji="✅")
       buttonSim.callback = bttnAceitarVotacao
       buttonNao =  Button(label="Não",style=discord.ButtonStyle.danger,emoji="⛔")
+      buttonNao.callback = bttnNegarVotacao
 
       view = View()
       view.add_item(buttonSim)
       view.add_item(buttonNao)
-      messageVotocao = await channelAmigos.send(embed=embedText,view=view)
+      await channelAmigos.send(embed=embedText,view=view)
       await interaction.response.send_message(embed=discord.Embed(description="Comando executado com sucesso!",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
 
     @adcionarAmigo.error
     async def on_adcionarAmigo_error(self,interaction: discord.Interaction, error: app_commands.AppCommandError):
-      print(error)
+      print(f"Aconteceu um erro no servidor [{interaction.guild.name}]\nErro: {error}")
+      await interaction.response.send_message(embed=discord.Embed(description="Aconteceu um erro interno!",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
 
 async def setup(client):
     await client.add_cog(AddAmigo(client))
