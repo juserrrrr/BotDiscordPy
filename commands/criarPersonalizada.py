@@ -129,5 +129,10 @@ class CriarPerson(commands.Cog):
       await interaction.response.send_message(embed=discord.Embed(description="Comando executado com sucesso!",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
       await interaction.channel.send(embed = embed_message, view = view)    
 
+    @criarPerson.error
+    async def on_criarPerson_error(self,interaction: discord.Interaction, error: app_commands.AppCommandError):
+      print(f"Aconteceu um erro no servidor [{interaction.guild.name}]\nErro: {error}")
+      await interaction.response.send_message(embed=discord.Embed(description="Aconteceu um erro interno!",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
+
 async def setup(client):
     await client.add_cog(CriarPerson(client))
