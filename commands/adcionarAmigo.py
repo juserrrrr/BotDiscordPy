@@ -8,7 +8,7 @@ class AddAmigo(commands.Cog):
         self.client = client
 
     @app_commands.command(name = 'adcionaramigo',description="Adciona um usuário ao cargo de amigos através de uma votação.")
-    @app_commands.guild_only
+    @app_commands.guild_only()
     async def adcionarAmigo(self,interaction: discord.Interaction,usuario:discord.Member):
       #Funções
       def embedMessage(confirmados):

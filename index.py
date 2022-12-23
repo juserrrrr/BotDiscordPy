@@ -22,7 +22,7 @@ async def loadCommands():
 async def main ():  
     await loadEvents()
     await loadCommands()
-    token = os.getenv("TOKEN_BOT_TEST")
+    token = os.getenv("TOKEN_BOT")
     await client.start(token)
 
 asyncio.run(main())
