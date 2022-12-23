@@ -7,6 +7,7 @@ class UsuarioLol(commands.Cog):
       self.client = client
     
     @app_commands.command(name = 'usuariolol',description="Mostra as informações de determinado usuario do lol")
+    @app_commands.guild_only
     async def usuarioLol(self,interaction: discord.Interaction,usuario:str):
 
       embed_message = discord.Embed(
@@ -28,7 +29,7 @@ class UsuarioLol(commands.Cog):
         nomeUsuario = dados.get('name')
         idIcon = dados.get('profileIconId')
         urlImage = apiLol.getUrlProfileIcon(idIcon)
-        
+
         #EmbedChanged
         embed_message.add_field(name="Solo/Duo",value=soloDuoStats)
         embed_message.add_field(name="Flex",value=flexStats)

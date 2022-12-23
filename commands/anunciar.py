@@ -7,6 +7,7 @@ class Anunciar(commands.Cog):
       self.client = client
 
     @app_commands.command(name = 'anunciar',description="Encaminha um anuncio para o canal onde foi executado o comando.")
+    @app_commands.guild_only
     async def anunciar(self,interaction: discord.Interaction,*,mensagem:str):
       embed_message = discord.Embed(
         title = "🎮 │ **Anuncio**",

@@ -7,6 +7,7 @@ class Registrar(commands.Cog):
         self.client = client
 
     @app_commands.command(name = 'registrar',description="Adciona um usário ao cargo de crias.")
+    @app_commands.guild_only
     async def registrar(self,interaction: discord.Interaction,usuario:discord.Member):
       #Procedimentos
       cargoCriaId = 785650374195019806
