@@ -88,6 +88,7 @@ class CriarPerson(commands.Cog):
         else:
           await interaction_sair.response.send_message(embed=discord.Embed(description="Você não esta na lista de confirmados.",color=interaction.guild.me.color),ephemeral=True,delete_after=3)
 
+
       async def buttonSortearPerson(interaction_sortear:discord.Interaction):
         if(interaction_sortear.user == interaction.user):
           button_Sortear.disabled = True
