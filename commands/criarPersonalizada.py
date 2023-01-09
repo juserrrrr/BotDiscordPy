@@ -6,7 +6,7 @@ from random import randint
 
 
 class CriarPerson(commands.Cog):
-    def __init__(self,client):
+    def __init__(self,client:discord.Client):
         self.client = client
 
     @app_commands.command(name = 'criarperson',description="Cria uma mensagem para que os usuarios possam entrar no sorteio da partida personalizada.")
@@ -26,8 +26,7 @@ class CriarPerson(commands.Cog):
       def sorteadorTimes(userParticipantes):
         time_azul = []
         time_vermelho = []
-        tamanho = int(len(userParticipantes)/2)
-        for i in range(tamanho):
+        while userParticipantes:
           value1 = randint(0,len(userParticipantes)-1)
           time_azul.append(userParticipantes[value1])
           userParticipantes.pop(value1)
@@ -36,15 +35,12 @@ class CriarPerson(commands.Cog):
           userParticipantes.pop(value2)
         return (time_azul,time_vermelho)
 
-      async def moverTimeAzul(time_azul,channel):
+      async def moverTime(time,channel):
         channel_azul = await self.client.fetch_channel(channel)
-        for user in time_azul:
+        for user in time:
           await user.move_to(channel_azul)
 
-      async def moverTimeVermelho(time_vermelho,channel):
-        channel_vermelho = await self.client.fetch_channel(channel)
-        for user in time_vermelho:
-          await user.move_to(channel_vermelho)
+          
 
       def embedMessage(confirmados):
         embed_message = discord.Embed(
@@ -52,20 +48,22 @@ class CriarPerson(commands.Cog):
           description = f"**Confirmados:**{confirmados}",
           color = 0xFF0004,
         )
-        embed_message.set_thumbnail(url = 'https://cdn-icons-png.flaticon.com/512/1732/1732468.png')
+        embed_message.set_thumbnail(url = 'https://i.imgur.com/z3rGL5L.png')
+        embed_message.set_footer(icon_url=interaction.guild.icon.url,text="SysTeamBahia v0.5")
         return embed_message
 
       def embedMessageWinners(usersAzul,usersVermelho):
         embed_message = discord.Embed(
           title = f"**{interaction.guild.name} | Partida personalizada 🚩 **",
-          description = f"**TimeAzul:**{usersAzul}\n**TimeVermelho:**{usersVermelho}\n**Ganhadores:**",
+          description = f"**TimeAzul:**{usersAzul}\n**TimeVermelho:**{usersVermelho}",
           color = 0xFF0004,
         )
-        embed_message.set_thumbnail(url = 'https://cdn-icons-png.flaticon.com/512/1732/1732468.png')
+        embed_message.set_thumbnail(url = 'https://i.imgur.com/z3rGL5L.png')
+        embed_message.set_footer(icon_url=interaction.guild.icon.url,text="SysTeamBahia v0.5")
         return embed_message
 
-      async def buttonEntrarPerson(interaction:discord.Interaction):
-        user = interaction.user
+      async def buttonEntrarPerson(interaction_entrar:discord.Interaction):
+        user = interaction_entrar.user
         if not user in users_confirmados:
           await user.move_to(channel_aguardado)
           users_confirmados.append(user)
@@ -73,15 +71,12 @@ class CriarPerson(commands.Cog):
           if len(users_confirmados) >= limite:
             button_Entrar.disabled = True
             button_Sortear.disabled = False
-          await interaction.response.edit_message(embed=embedMessage(gerarTextoUsers(users_confirmados)),view=view)
-        
+          await interaction_entrar.response.edit_message(embed=embedMessage(gerarTextoUsers(users_confirmados)),view=view)   
         else:
-          msg = await interaction.user.send("Você já esta confirmado.")
-          msg.delete(delay=4)
-          await interaction.response.defer()
+          await interaction_entrar.response.send_message(embed=discord.Embed(description="Você já esta confirmado.",color=interaction.guild.me.color),ephemeral=True,delete_after=3)
 
-      async def buttonSairPerson(interaction:discord.Interaction):
-        user = interaction.user
+      async def buttonSairPerson(interaction_sair:discord.Interaction):
+        user = interaction_sair.user
         if user in users_confirmados:
           await user.move_to(channel_principal)
           users_confirmados.remove(user)
@@ -89,17 +84,22 @@ class CriarPerson(commands.Cog):
           if len(users_confirmados) < limite:
             button_Entrar.disabled = False
             button_Sortear.disabled = True
-          await interaction.response.edit_message(embed=embedMessage(gerarTextoUsers(users_confirmados)),view=view)
+          await interaction_sair.response.edit_message(embed=embedMessage(gerarTextoUsers(users_confirmados)),view=view)
+        else:
+          await interaction_sair.response.send_message(embed=discord.Embed(description="Você não esta na lista de confirmados.",color=interaction.guild.me.color),ephemeral=True,delete_after=3)
 
-      async def buttonSortearPerson(interaction:discord.Interaction):
-        time_azul, time_vermelho = sorteadorTimes(users_confirmados)
-        await moverTimeAzul(time_azul,785652356217962516)
-        await moverTimeVermelho(time_vermelho,785652405915222029)
-        button_Sortear.disabled = True
-        button_Sair.disabled = True
-        timeAzul = gerarTextoUsers(time_azul)
-        timeVermelho = gerarTextoUsers(time_vermelho)
-        await interaction.response.edit_message(embed=embedMessageWinners(timeAzul,timeVermelho),view=view)
+      async def buttonSortearPerson(interaction_sortear:discord.Interaction):
+        if(interaction_sortear.user == interaction.user):
+          button_Sortear.disabled = True
+          button_Sair.disabled = True
+          time_azul, time_vermelho = sorteadorTimes(users_confirmados)
+          timeAzul = gerarTextoUsers(time_azul)
+          timeVermelho = gerarTextoUsers(time_vermelho)
+          await interaction_sortear.response.edit_message(embed=embedMessageWinners(timeAzul,timeVermelho),view=view)
+          await moverTime(time_azul,785652356217962516)
+          await moverTime(time_vermelho,785652405915222029)
+        else:
+          await interaction_sortear.response.send_message(embed=discord.Embed(description="Somente o criador da personalizada pode executar esta ação.",color=interaction.guild.me.color),ephemeral=True,delete_after=3)
 
       #Procedimentos
         #Variaveis
