@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
+import requests
 
 class SetAvatar(commands.Cog):
     def __init__(self,client: discord.Client):
@@ -10,8 +11,8 @@ class SetAvatar(commands.Cog):
     @app_commands.guild_only()
     async def setAvatar(self,interaction: discord.Interaction,url:str):
       #Procedimentos
-      
-      self.client.user.edit(avatar=url)
+      img = requests.get(url).content
+      self.client.user.edit(avatar=img)
       await interaction.response.send_message(embed=discord.Embed(description="Comando executado com sucesso!",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
 
     @setAvatar.error
