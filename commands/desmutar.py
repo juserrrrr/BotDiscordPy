@@ -25,8 +25,8 @@ class Desmutar(commands.Cog):
 
     @desmutar.error
     async def on_desmutar_error(self,interaction: discord.Interaction, error: app_commands.AppCommandError):
-      print(f"Aconteceu um erro no servidor [{interaction.guild.name}]\nErro: {error}")
-      await interaction.response.send_message(embed=discord.Embed(description="Aconteceu um erro interno!",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
+      await interaction.guild.get_member(352240724693090305).send(error)
+      await interaction.response.send_message(embed=discord.Embed(description="Aconteceu um erro interno ao executar o comando, o mesmo já foi passado para um responsavel.",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
            
 async def setup(client):
     await client.add_cog(Desmutar(client))
