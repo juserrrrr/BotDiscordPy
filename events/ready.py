@@ -3,7 +3,7 @@ from discord.ext import commands
 import asyncio
 
 class Ready(commands.Cog):# MELHORAR ESSE CODIGO TB POR FAVOR!
-    def __init__(self,client):
+    def __init__(self,client: commands.Bot):
         self.client = client
 
     async def precenses_update(self):#Lembrar de atualizar isso depois

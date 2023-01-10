@@ -38,6 +38,8 @@ class JoinServer(commands.Cog):
         embed_message.set_thumbnail(url = member.display_avatar.replace(format='png').url)
         await channelDoor.send(embed = embed_message)
     
+    
+    
 
 async def setup(client):
     await client.add_cog(JoinServer(client))
