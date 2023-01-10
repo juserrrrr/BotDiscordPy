@@ -3,8 +3,9 @@ from discord.ext import commands
 from discord import app_commands
 
 class Registrar(commands.Cog):
-    def __init__(self,client: discord.Client):
+    def __init__(self,client: commands.Bot):
         self.client = client
+
 
     @app_commands.command(name = 'registrar',description="Adciona um usário ao cargo de crias.")
     @app_commands.guild_only()
@@ -16,9 +17,5 @@ class Registrar(commands.Cog):
       await usuario.add_roles(cargoCria)
       await interaction.response.send_message(embed=discord.Embed(description="Comando executado com sucesso!",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
 
-    @registrar.error
-    async def on_registrar_error(self,interaction: discord.Interaction, error: app_commands.AppCommandError):
-      await interaction.guild.get_member(352240724693090305).send(error)
-      await interaction.response.send_message(embed=discord.Embed(description="Aconteceu um erro interno ao executar o comando, o mesmo já foi passado para um responsavel.",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
-async def setup(client):
+async def setup(client: commands.Bot):
     await client.add_cog(Registrar(client))

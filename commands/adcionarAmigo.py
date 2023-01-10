@@ -4,7 +4,7 @@ from discord.ui import Button, View
 from discord import app_commands
 
 class AddAmigo(commands.Cog):
-    def __init__(self,client: discord.Client):
+    def __init__(self,client: commands.Bot):
         self.client = client
 
     @app_commands.command(name = 'adcionaramigo',description="Adciona um usuário ao cargo de amigos através de uma votação.")
@@ -42,30 +42,27 @@ class AddAmigo(commands.Cog):
         else:
           await interaction.response.send_message(embed=discord.Embed(description="Você já votou.",color=interaction.guild.me.color),ephemeral=True,delete_after=2)
       #Procedimentos
-      votos_confirmados_membros = []
-      votos_sim = []
-      cargoAmigoId = 785650860125978635
-      canalAmigoId = 785650118413385760
-      limiteVotacao = 5
-      channelAmigos = interaction.guild.get_channel(canalAmigoId)
-      embedText = embedMessage(0)
+      if usuario.get_role(785650860125978635) is None:
+        votos_confirmados_membros = []
+        votos_sim = []
+        cargoAmigoId = 785650860125978635
+        canalAmigoId = 785650118413385760
+        limiteVotacao = 5
+        channelAmigos = interaction.guild.get_channel(canalAmigoId)
+        embedText = embedMessage(0)
 
 
-      buttonSim =  Button(label="Sim",style=discord.ButtonStyle.success,emoji="✅")
-      buttonSim.callback = bttnAceitarVotacao
-      buttonNao =  Button(label="Não",style=discord.ButtonStyle.danger,emoji="⛔")
-      buttonNao.callback = bttnNegarVotacao
+        buttonSim =  Button(label="Sim",style=discord.ButtonStyle.success,emoji="✅")
+        buttonSim.callback = bttnAceitarVotacao
+        buttonNao =  Button(label="Não",style=discord.ButtonStyle.danger,emoji="⛔")
+        buttonNao.callback = bttnNegarVotacao
 
-      view = View()
-      view.add_item(buttonSim)
-      view.add_item(buttonNao)
-      await channelAmigos.send(embed=embedText,view=view)
-      await interaction.response.send_message(embed=discord.Embed(description="Comando executado com sucesso!",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
-
-    @adcionarAmigo.error
-    async def on_adcionarAmigo_error(self,interaction: discord.Interaction, error: app_commands.AppCommandError):
-      await interaction.guild.get_member(352240724693090305).send(error)
-      await interaction.response.send_message(embed=discord.Embed(description="Aconteceu um erro interno ao executar o comando, o mesmo já foi passado para um responsavel.",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
-
-async def setup(client):
+        view = View()
+        view.add_item(buttonSim)
+        view.add_item(buttonNao)
+        await channelAmigos.send(embed=embedText,view=view)
+        await interaction.response.send_message(embed=discord.Embed(description="Comando executado com sucesso.",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
+      else:
+        await interaction.response.send_message(embed=discord.Embed(description="Esse usuario já possui esse cargo.",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
+async def setup(client: commands.Bot):
     await client.add_cog(AddAmigo(client))
