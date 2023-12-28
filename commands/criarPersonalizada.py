@@ -42,24 +42,27 @@ class CriarPerson(commands.Cog):
 
         def embedMessage(confirmed):
             embed_message = discord.Embed(
-                title=f"**{interaction.guild.name} | Partida personalizada 🚩 **",
-                description=f"**Confirmados:**{confirmed}",
+                title=f"**League of Legends | Partida personalizada. 🚩 **",
                 color=0xFF0004,
             )
-            embed_message.set_thumbnail(url='https://i.imgur.com/z3rGL5L.png')
+            embed_message.add_field(
+                name="**Time Azul 🔵**", value="Juser\nZig Zag\nBibo\nFabii87\nsweaterweather", inline=True)
+            embed_message.add_field(
+                name="**Time Vermelho 🔴**", value="Drownny\nZemiiudo\nDroga é a Vic\nIndio\nMaurinha", inline=True)
+            embed_message.set_image(url='https://i.imgur.com/kNWEtds.png')
             embed_message.set_footer(
-                icon_url=interaction.guild.icon.url, text="SysTeamBahia v0.5")
+                text="🌐SysTeamBahia v0.5")
             return embed_message
 
         def embedMessageWinners(usersBlue, usersRed):
             embed_message = discord.Embed(
-                title=f"**{interaction.guild.name} | Partida personalizada 🚩 **",
+                title=f"**League of Legends | Partida personalizada. 🚩 **",
                 description=f"**TimeAzul:**{usersBlue}\n**TimeVermelho:**{usersRed}",
                 color=0xFF0004,
             )
-            embed_message.set_thumbnail(url='https://i.imgur.com/z3rGL5L.png')
+            embed_message.set_image(url='https://i.imgur.com/kNWEtds.png')
             embed_message.set_footer(
-                icon_url=interaction.guild.icon.url, text="SysTeamBahia v0.5")
+                text="🌐SysTeamBahia v0.5")
             return embed_message
 
         async def btnJoinPerson(interactionJoin: discord.Interaction):
@@ -112,34 +115,34 @@ class CriarPerson(commands.Cog):
 
         # Procedimentos
         # Variaveis
-        channel_principal = await self.client.fetch_channel(785653602928033802)
-        channel_aguardado = await self.client.fetch_channel(854680472206442537)
+        # channel_principal = await self.client.fetch_channel(785653602928033802)
+        # channel_aguardado = await self.client.fetch_channel(854680472206442537)
         users_confirmed = []
 
-        btnJoin = Button(
-            label="Entrar", style=discord.ButtonStyle.green, emoji="✔")
-        btnJoin.callback = btnJoinPerson
+        # btnJoin = Button(
+        #     label="Entrar", style=discord.ButtonStyle.green, emoji="✔")
+        # btnJoin.callback = btnJoinPerson
 
-        btnExit = Button(
-            label="Sair", style=discord.ButtonStyle.red, emoji="❌")
-        btnExit.callback = btnExitPerson
+        # btnExit = Button(
+        #     label="Sair", style=discord.ButtonStyle.red, emoji="❌")
+        # btnExit.callback = btnExitPerson
 
-        btnAmount = Button(
-            label=f"0/{limite}", style=discord.ButtonStyle.grey, emoji="👨‍👩‍        👦",disabled=True)
+        # btnAmount = Button(
+        #     label=f"0/{limite}", style=discord.ButtonStyle.grey, emoji="👨‍👩‍         👦",disabled=True)
 
-        btnDraw = Button(
-            label="Start", style=discord.ButtonStyle.success, emoji="▶", disabled=True)
-        btnDraw.callback = btnDrawPerson
+        # btnDraw = Button(
+        #     label="Start", style=discord.ButtonStyle.success, emoji="▶", disabled=True)
+        # btnDraw.callback = btnDrawPerson
 
-        view = View()
-        view.add_item(btnJoin)
-        view.add_item(btnExit)
-        view.add_item(btnAmount)
-        view.add_item(btnDraw)
+        # view = View()
+        # view.add_item(btnJoin)
+        # view.add_item(btnExit)
+        # view.add_item(btnAmount)
+        # view.add_item(btnDraw)
 
         embed_message = embedMessage('')
         await interaction.response.send_message(embed=discord.Embed(description="Comando executado com sucesso!", color=interaction.guild.me.color), ephemeral=True, delete_after=4)
-        await interaction.channel.send(embed=embed_message, view=view)
+        await interaction.channel.send(embed=embed_message)
 
 
 async def setup(client):
