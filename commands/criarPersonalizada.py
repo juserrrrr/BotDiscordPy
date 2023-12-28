@@ -3,6 +3,8 @@ from discord.ui import Button, View
 from discord import app_commands
 from discord.ext import commands
 from random import randint
+from .utilsPerson.viewInterfaces import *
+
 
 
 class CriarPerson(commands.Cog):
@@ -113,11 +115,40 @@ class CriarPerson(commands.Cog):
             else:
                 await interactionDraw.response.send_message(embed=discord.Embed(description="Somente o criador da personalizada pode executar esta ação.", color=interaction.guild.me.color), ephemeral=True, delete_after=3)
 
-        # Procedimentos
-        # Variaveis
-        # channel_principal = await self.client.fetch_channel(785653602928033802)
-        # channel_aguardado = await self.client.fetch_channel(854680472206442537)
+        # Variaveis globais
+                i
         users_confirmed = []
+        responseCreate = 0
+        guildChannelsDict = {channel.name: channel for channel in interaction.guild.channels}
+        channelNameWaiting = '| 🕘 | AGUARDANDO'
+        channelNameBlue = 'LADO [ |🔵| ]'
+        channelNameRed = 'LADO [ |🔴| ]'
+        
+        # Procedimentos
+
+        # Checar se o canal aguardado, lado azul e lado vermelho existem.
+        if not all(channel in guildChannelsDict.keys() for channel in [channelNameWaiting, channelNameBlue, channelNameRed]):
+            viewCreateChannels = ViewActionConfirm(channels=[channelNameWaiting, channelNameBlue, channelNameRed])
+            await interaction.response.send_message(content="Percebi que o servidor não possui os canais de voz essenciais para o funcionamento da fila. Será que você poderia me permitir criar esses canais?", ephemeral=True, view=viewCreateChannels)
+            try:
+                responseCreate = await asyncio.wait_for(viewCreateChannels.future, timeout=5)
+                if responseCreate == '0':
+                    return
+            except asyncio.TimeoutError:
+                # Limite de tempo excedido, evento cancelado.
+                return await interaction.delete_original_response()
+
+        # 1. Pegar os canais de voz essenciais para o funcionamento da fila.
+
+        # 2. Fazer ps views para configuração da personalizada.
+            
+        # 3. Criar a personalizada.
+        
+    
+     
+        # channel_principal = await self.client.fetch_channel('Geral')
+       
+        # channel_aguardado = await self.client.fetch_channel(854680472206442537)
 
         # btnJoin = Button(
         #     label="Entrar", style=discord.ButtonStyle.green, emoji="✔")
@@ -140,9 +171,9 @@ class CriarPerson(commands.Cog):
         # view.add_item(btnAmount)
         # view.add_item(btnDraw)
 
-        embed_message = embedMessage('')
-        await interaction.response.send_message(embed=discord.Embed(description="Comando executado com sucesso!", color=interaction.guild.me.color), ephemeral=True, delete_after=4)
-        await interaction.channel.send(embed=embed_message)
+        # embed_message = embedMessage('')
+        # await interaction.response.send_message(embed=discord.Embed(description="Comando executado com sucesso!", color=interaction.guild.me.color), ephemeral=True, delete_after=4)
+        # await interaction.channel.send(embed=embed_message)
 
 
 async def setup(client):
