@@ -8,14 +8,16 @@ class ApiLol():
       self.token = os.getenv("TOKEN_LOL_API")
       self.header = {'X-Riot-Token':self.token}
 
-    def suitingString(self,string:str):
-      return string.lower().replace(" ","")
-
-    def getSummonerName(self,name:str):
-      name = self.suitingString(name)
-      url = f"https://br1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{name}"
+    def getSummonerByPuuid(self,puuid:str):
+      url = f"https://br1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
       response = self.session.get(url,headers=self.header)
       return response
+
+    def getAccount(self,gameName:str, tagline:str):
+      url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{gameName}/{tagline}"
+      response = self.session.get(url,headers=self.header)
+      return response
+    
 
     def getUrlProfileIcon(self,id:int):
       return f"http://ddragon.leagueoflegends.com/cdn/12.23.1/img/profileicon/{id}.png"
