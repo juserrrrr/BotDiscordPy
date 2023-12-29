@@ -1,8 +1,7 @@
 import requests
-import dotenv
 import os
 
-class ApiLol():
+class lolService():
     def __init__(self):
       self.session = requests.session()
       self.token = os.getenv("TOKEN_LOL_API")

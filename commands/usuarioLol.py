@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from apiLol.apilol import ApiLol
+from services.lolService import lolService
 class UsuarioLol(commands.Cog):
     def __init__(self,client: commands.Bot):
       self.client = client
@@ -21,13 +21,14 @@ class UsuarioLol(commands.Cog):
       embed_message.set_thumbnail(url = interaction.guild.icon.url)
       await interaction.response.defer()
 
-      apiLol = ApiLol()
+      apiLol = lolService()
       userPuuid = apiLol.getAccount(nick,tag).json().get('puuid')
       dados = apiLol.getSummonerByPuuid(userPuuid)
       if dados.status_code == 200:
         dados = dados.json()
         userId = dados.get('id')
         rankedDados = apiLol.getRankedStats(userId).json()
+        print(userId)
    
         for ranked in rankedDados:
           if ranked.get('queueType') == rankedSoloName:
