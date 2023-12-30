@@ -76,7 +76,7 @@ class CriarPerson(commands.Cog):
             viewCreateChannels = ViewActionConfirm(channels=[channelNameWaiting, channelNameBlue, channelNameRed])
             await interaction.response.send_message(content="Percebi que o servidor não possui os canais de voz essenciais para o funcionamento da fila. Será que você poderia me permitir criar esses canais?", ephemeral=True, view=viewCreateChannels)
             try:
-                responseCreate = await asyncio.wait_for(viewCreateChannels.future, timeout=5)
+                responseCreate = await asyncio.wait_for(viewCreateChannels.future, timeout=60)
                 if responseCreate == '0':
                     return
             except asyncio.TimeoutError:
@@ -95,8 +95,15 @@ class CriarPerson(commands.Cog):
         # 3. Criar a personalizada.
         embed_message = embedMessage('')
         viewBtns = ViewBtnInterface(userCallCommand, channelWaiting, channelHome, channelBlue, channelRed, confirmedUsers, embedMessage, embedMessageTeam)
-        await interaction.response.send_message(embed=embed_message, view=viewBtns)
         
+        # Verificar se ja foi respondi a mensagem, se não, responde, se sim manda um follwup
+        if interaction.response.is_done():
+            await interaction.delete_original_response()
+            await interaction.followup.send(embed=embed_message, view=viewBtns)
+        else:
+            await interaction.response.send_message(embed=embed_message, view=viewBtns)
+  
+
 
 
 async def setup(client):

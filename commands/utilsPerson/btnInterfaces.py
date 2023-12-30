@@ -15,11 +15,13 @@ class BtnJoinCustomMatch(ui.Button):
     async def requestLeagueName(self, interaction: discord.Interaction):
       modal = ModalLeagueName()
       await interaction.response.send_modal(modal)
+      await modal.wait()
 
     async def callback(self, interaction: discord.Interaction):
       
       user = interaction.user
-      await self.requestLeagueName(interaction)
+      if(checkUserIsRegistered(user) == False):
+        await self.requestLeagueName(interaction)
       if (user.voice == None):
         await interaction.response.send_message(
           embed=discord.Embed(description="Você não esta em um canal de voz.",
@@ -35,10 +37,16 @@ class BtnJoinCustomMatch(ui.Button):
         if len(self.confirmedUsers) == 10:
             self.viewBtn.joinBtn.disabled = True
             self.viewBtn.startBtn.disabled = False
-        await interaction.response.edit_message(
+        if (interaction.response.is_done()):
+          await interaction.edit_original_response(
             embed=self.embedMessage(generateTextUsers(self.confirmedUsers)),
             view=self.viewBtn
         ) 
+        else:
+          await interaction.response.edit_message(
+            embed=self.embedMessage(generateTextUsers(self.confirmedUsers)),
+            view=self.viewBtn
+          )
       else:
         await interaction.response.send_message(
           embed=discord.Embed(description="Você já esta confirmado.",

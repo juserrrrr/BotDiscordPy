@@ -13,12 +13,11 @@ class createEssentialChannels(ui.Select):
     ]
   async def callback(self, interaction: Interaction):
     selectedOption = self.values[0]
-    self.response.set_result(selectedOption)
 
     if selectedOption == '0':
       await interaction.response.edit_message(content="Ok, Entendi.", view=None, delete_after=3)
       return
-    await interaction.response.edit_message(content="Criando canais...", view=None, delete_after=3)
+    await interaction.response.edit_message(content="Criando canais...", view=None)
 
     #Variaveis utilizadas
     categoryName = "🆚 Personalizada"
@@ -42,4 +41,5 @@ class createEssentialChannels(ui.Select):
     for channel in self.channels:
       if channel not in interaction.guild.channels:
         await interaction.guild.create_voice_channel(channel, category=categoryPerson)
+    self.response.set_result(selectedOption)
   

@@ -35,7 +35,9 @@ async def moveTeam(team, channel: discord.VoiceChannel):
 def splitUserTag(nameLeague):
   return nameLeague.split('#')
 
-def checkUserIsRegistered(response):
+def checkUserIsRegistered(user:discord.User):
+  timbas = timbasService()
+  response = timbas.getUserByDiscordId(user.id)
   return response.status_code == 200
 
 def checkUserIsLeagueId(data):
