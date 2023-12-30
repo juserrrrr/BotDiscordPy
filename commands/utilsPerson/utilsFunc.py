@@ -5,10 +5,6 @@ from services.lolService import lolService
 from .confirmView import ConfirmView
 import asyncio
 
-
-def socorro():
-  print('socorro')
-
 def generateTextUsers(usersPersonList):
   string = ''
   tamanho = len(usersPersonList)
@@ -65,19 +61,23 @@ def getDataPlayerLeague(dataSummoner, dataRank):
   rankedSoloName = 'RANKED_SOLO_5x5'
   rankedFlexName = 'RANKED_FLEX_SR'
   
+  rankedDadosSolo = None
+  rankedDadosFlex = None
+
   for ranked in dataRank:
     if ranked.get('queueType') == rankedSoloName:
       rankedDadosSolo = ranked
     elif ranked.get('queueType') == rankedFlexName:
       rankedDadosFlex = ranked
+
   return {
     'name': dataSummoner.get('name'),
     'profileIconId': dataSummoner.get('profileIconId'),
     'level': dataSummoner.get('summonerLevel'),
-    'tierSolo': rankedDadosSolo.get('tier'),
-    'rankSolo': rankedDadosSolo.get('rank'),
-    'tierFlex': rankedDadosFlex.get('tier'),
-    'rankFlex': rankedDadosFlex.get('rank'),
+    'tierSolo': (rankedDadosSolo or {}).get('tier', ''),
+    'rankSolo': (rankedDadosSolo or {}).get('rank', 'Unranked'),
+    'tierFlex': (rankedDadosFlex or {}).get('tier', ''),
+    'rankFlex': (rankedDadosFlex or {}).get('rank', 'Unranked'),
   }
 
 async def showUser(interaction: discord.Interaction, userName: str):

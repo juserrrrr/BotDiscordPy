@@ -28,7 +28,7 @@ class UsuarioLol(commands.Cog):
         dados = dados.json()
         userId = dados.get('id')
         rankedDados = apiLol.getRankedStats(userId).json()
-        print(userId)
+  
    
         for ranked in rankedDados:
           if ranked.get('queueType') == rankedSoloName:
