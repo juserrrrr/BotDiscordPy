@@ -91,11 +91,10 @@ class CriarPerson(commands.Cog):
         channelBlue = guildChannelsDict[channelNameBlue]
         channelRed = guildChannelsDict[channelNameRed]
         # 2. Fazer os views para configuração da personalizada.
-            
+
         # 3. Criar a personalizada.
         embed_message = embedMessage('')
         viewBtns = ViewBtnInterface(userCallCommand, channelWaiting, channelHome, channelBlue, channelRed, confirmedUsers, embedMessage, embedMessageTeam)
-        
         # Verificar se ja foi respondi a mensagem, se não, responde, se sim manda um follwup
         if interaction.response.is_done():
             await interaction.delete_original_response()

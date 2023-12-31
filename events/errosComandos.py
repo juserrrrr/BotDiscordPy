@@ -9,6 +9,7 @@ class ErrorHandler(commands.Cog):
 
     async def on_app_command_error(self,interaction: discord.Interaction , error: app_commands.AppCommandError):
       mensagem = ""
+      print(error)
       if isinstance(error,app_commands.CheckFailure):
         if(interaction.command.name == "setavatar"):
           mensagem = "Você não tem permissão para executar esse comando."

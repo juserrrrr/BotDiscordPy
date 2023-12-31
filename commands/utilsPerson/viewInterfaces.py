@@ -25,11 +25,10 @@ class ViewBtnInterface(ui.View):
         self.exitBtn = BtnExitCustomMatch(
           channelHome, confirmedUsers, embedMessage, self
         )
-        
         self.add_item(self.joinBtn)
         self.add_item(self.exitBtn)
         self.add_item(self.amountBtn)
         self.add_item(self.startBtn)
-
+    
 
         

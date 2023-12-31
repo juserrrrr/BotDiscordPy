@@ -14,6 +14,7 @@ class Registrar(commands.Cog):
 
     async def registrar(self, interaction: discord.Interaction, usuario: discord.Member):
         # Procedimentos
+        
         cargoCriaId = 785650374195019806
         cargoAmigoId = 785650860125978635
         cargoCria = interaction.guild.get_role(cargoCriaId)

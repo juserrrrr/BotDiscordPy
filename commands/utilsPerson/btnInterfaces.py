@@ -18,8 +18,8 @@ class BtnJoinCustomMatch(ui.Button):
       await modal.wait()
 
     async def callback(self, interaction: discord.Interaction):
+      user = await interaction.user
       
-      user = interaction.user
       if(checkUserIsRegistered(user) == False):
         await self.requestLeagueName(interaction)
       if (user.voice == None):
