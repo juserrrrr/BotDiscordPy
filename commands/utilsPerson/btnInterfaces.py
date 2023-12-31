@@ -18,10 +18,7 @@ class BtnJoinCustomMatch(ui.Button):
       await modal.wait()
 
     async def callback(self, interaction: discord.Interaction):
-      user = await interaction.user
-      
-      if(checkUserIsRegistered(user) == False):
-        await self.requestLeagueName(interaction)
+      user = interaction.user
       if (user.voice == None):
         await interaction.response.send_message(
           embed=discord.Embed(description="Você não esta em um canal de voz.",
@@ -29,7 +26,11 @@ class BtnJoinCustomMatch(ui.Button):
           ephemeral=True,
           delete_after=3
         )
+      
+      if(checkUserIsRegistered(user) == False):
+        await self.requestLeagueName(interaction)
 
+      #SE ELE N ACHAR A CONTA DO USUARIO, NÃO PODE ENTRAR NA SALA
       elif not user in self.confirmedUsers:
         await user.move_to(self.channelWaiting)
         self.confirmedUsers.append(user)

@@ -1,5 +1,8 @@
+from typing import Any, Coroutine
 import discord
 from discord import ui
+from discord.interactions import Interaction
+from discord.ui.item import Item
 from .selectInterfaces import createEssentialChannels
 from .btnInterfaces import *
 import asyncio
@@ -29,6 +32,8 @@ class ViewBtnInterface(ui.View):
         self.add_item(self.exitBtn)
         self.add_item(self.amountBtn)
         self.add_item(self.startBtn)
+    def on_error(self, interaction: Interaction, error: Exception, item: Item):
+        print(error.args[0])
     
 
         
