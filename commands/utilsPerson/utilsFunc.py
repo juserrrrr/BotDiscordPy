@@ -80,68 +80,14 @@ def getDataPlayerLeague(dataSummoner, dataRank):
     'rankFlex': (rankedDadosFlex or {}).get('rank', 'Unranked'),
   }
 
-async def showUser(interaction: discord.Interaction, userName: str):
-  apiLol = lolService()
+def checkAndGetDataPlayerLeague(lolService, userName):
   userSplit = splitUserTag(userName)
-  responseAccount = apiLol.getAccount(userSplit[0],userSplit[1])
+  responseAccount = lolService.getAccount(userSplit[0],userSplit[1])
   if checkUserLeagueExists(responseAccount):
-    responseSummoner = apiLol.getSummonerByPuuid(responseAccount.json().get('puuid'))
-    responseRank = apiLol.getRankedStats(responseSummoner.json().get('id'))
-    DataPlayer = getDataPlayerLeague(responseSummoner.json(), responseRank.json())
-    viewConfirm = ConfirmView()
-    #AJEITAR ESSE CÓDIGO DEPOIS
-    await interaction.edit_original_response(
-      content="",
-      embed=discord.Embed(
-        title = f"**{DataPlayer.get('name')}**, é você?",
-        description = f"**Infomações sobre o jogador**",
-        color = 0x00FF00
-      ).add_field(
-        name="Solo/Duo",
-        value=f"**{DataPlayer.get('tierSolo')} {DataPlayer.get('rankSolo')}**"
-      ).add_field(
-        name="Flex",
-        value=f"**{DataPlayer.get('tierFlex')} {DataPlayer.get('rankFlex')}**"
-      ).add_field(
-        name="Level",
-        value=f"**{DataPlayer.get('level')}**"
-      ).set_thumbnail(
-        url = apiLol.getUrlProfileIcon(DataPlayer.get('profileIconId'))
-      ),
-      view=viewConfirm
-    )
-    #==============================
-    await viewConfirm.wait()
-    if viewConfirm.value:
-      await createUserOnTimbas(interaction.user, responseSummoner.json().get('id'))
-      await interaction.edit_original_response(
-        content="",
-        embed=discord.Embed(
-          description = f"**Usuário registrado com sucesso.**",
-          color = 0x00FF00
-        ),
-        view=None
-      )
-    else:
-      await interaction.edit_original_response(
-        content="",
-        embed=discord.Embed(
-          description = f"**Usuário não registrado.**",
-          color = 0xFF0004
-        ),
-        view=None
-      )
-    await asyncio.sleep(2)
-    await interaction.delete_original_response()
-    return
-
-  await interaction.edit_original_response(
-    content="",
-    embed=discord.Embed(
-      description = f"**Usuário não encotrado, tente novamente.**",
-      color = 0xFF0004
-    )
-  )
+    responseSummoner = lolService.getSummonerByPuuid(responseAccount.json().get('puuid'))
+    responseRank = lolService.getRankedStats(responseSummoner.json().get('id'))
+    return getDataPlayerLeague(responseSummoner.json(), responseRank.json())
+  return None
 
 
 

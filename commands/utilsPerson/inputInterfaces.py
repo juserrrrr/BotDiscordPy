@@ -2,6 +2,7 @@ import discord
 from discord import ui
 from .utilsFunc import *
 from base.BaseModal import BaseModal
+from services.lolService import lolService
 
 class ModalLeagueName(BaseModal, title="Registro de conta do League of Legends."):
 
@@ -13,10 +14,57 @@ class ModalLeagueName(BaseModal, title="Registro de conta do League of Legends."
         placeholder="Ex: Timbas#BR1",
         custom_id="leagueName",
         required=True
+
         )
 
 
     async def on_submit(self, interaction: discord.Interaction):
+      if self.leagueName.value.count('#') != 1:
+        return await interaction.response.send_message(content="Verifique seu nick e tente novamente.", ephemeral=True, delete_after=2)
       await interaction.response.send_message(content="Obrigado, aguarde um instante, enquanto acho sua conta.", ephemeral=True)
-      await showUser(interaction, self.leagueName.value)   
 
+      leagueService = lolService()
+
+      dataPlayer = checkAndGetDataPlayerLeague(leagueService, self.leagueName.value) 
+      if dataPlayer is None:
+        await interaction.edit_original_response(content="Não foi possível encontrar sua conta, verifique se digitou corretamente.", embed=None, view=None)
+        await asyncio.sleep(2)
+        return await interaction.delete_original_response()                             
+      else:
+        viewConfirm = ConfirmView()
+        await interaction.edit_original_response(
+          content="",
+          embed=discord.Embed(
+            title = f"**{dataPlayer.get('name')}**, é você?",
+            description = f"**Infomações sobre o jogador**",
+            color = 0x00FF00
+          ).add_field(
+            name="Solo/Duo",
+            value=f"**{dataPlayer.get('tierSolo')} {dataPlayer.get('rankSolo')}**"
+          ).add_field(
+            name="Flex",
+            value=f"**{dataPlayer.get('tierFlex')} {dataPlayer.get('rankFlex')}**"
+          ).add_field(
+            name="Level",
+            value=f"**{dataPlayer.get('level')}**"
+          ).set_thumbnail(
+            url = leagueService.getUrlProfileIcon(dataPlayer.get('profileIconId'))
+          ),
+          view=viewConfirm
+        )
+        await viewConfirm.wait()
+        replyMessage = 'Usuário não registrado.'
+        if viewConfirm.value:
+          await createUserOnTimbas(interaction.user, dataPlayer.get('id'))
+          replyMessage = 'Usuário registrado com sucesso.'
+        
+        await interaction.edit_original_response(
+          content="",
+          embed=discord.Embed(
+            description = f"**{replyMessage}**",
+            color = 0xFF0004
+          ),
+          view=None
+        )
+        await asyncio.sleep(2)
+        return await interaction.delete_original_response()

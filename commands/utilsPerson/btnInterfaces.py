@@ -43,9 +43,9 @@ class BtnJoinCustomMatch(ui.Button):
           delete_after=3
         )
       
-      isRegistered = await self.checkRegisterLeague(interaction)
+      userRegistered = await self.checkRegisterLeague(interaction)
 
-      if not isRegistered:
+      if not userRegistered:
         return
       elif not user in self.confirmedUsers:
         await user.move_to(self.channelWaiting)
