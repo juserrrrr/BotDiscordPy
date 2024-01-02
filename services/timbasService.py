@@ -11,9 +11,12 @@ class timbasService():
 
   def getUserByDiscordId(self,discordId:str):
     url = f"{self.url}/users/discord/{discordId}"
-    response = self.session.get(url,headers=self.header)
-    return response
-  
+    try:
+      response = self.session.get(url,headers=self.header, timeout=1)
+      return response
+    except Exception as exp:
+      return None
+
   def createUser(self, data:dict):
     url = f"{self.url}/users"
     response = self.session.post(url, headers=self.header, data=data)

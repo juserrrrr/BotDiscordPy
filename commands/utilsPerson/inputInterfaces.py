@@ -1,8 +1,9 @@
 import discord
 from discord import ui
 from .utilsFunc import *
+from base.BaseModal import BaseModal
 
-class ModalLeagueName(ui.Modal, title="Registro de conta do League of Legends."):
+class ModalLeagueName(BaseModal, title="Registro de conta do League of Legends."):
 
     
     leagueName = ui.TextInput(
@@ -17,5 +18,5 @@ class ModalLeagueName(ui.Modal, title="Registro de conta do League of Legends.")
 
     async def on_submit(self, interaction: discord.Interaction):
       await interaction.response.send_message(content="Obrigado, aguarde um instante, enquanto acho sua conta.", ephemeral=True)
-      await showUser(interaction, self.leagueName.value)
+      await showUser(interaction, self.leagueName.value)   
 

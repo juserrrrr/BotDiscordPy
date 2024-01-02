@@ -2,6 +2,7 @@ import discord
 from discord import ui
 from .utilsFunc import *
 from .inputInterfaces import *
+from services.timbasService import timbasService
 
 
 class BtnJoinCustomMatch(ui.Button):
@@ -12,10 +13,25 @@ class BtnJoinCustomMatch(ui.Button):
       self.embedMessage = embedMessage
       self.viewBtn = view
 
-    async def requestLeagueName(self, interaction: discord.Interaction):
-      modal = ModalLeagueName()
-      await interaction.response.send_modal(modal)
-      await modal.wait()
+    async def checkRegisterLeague(self, interaction: discord.Interaction):
+      timbasApi = timbasService()
+      user = interaction.user
+      responseUser = timbasApi.getUserByDiscordId(user.id)
+      if responseUser is not None:
+        if not checkUserIsRegistered(responseUser):
+          modal = ModalLeagueName()
+          await interaction.response.send_modal(modal)
+          await modal.wait()
+          return False # Melhorar isso aqui depois.
+        return True
+      await interaction.response.send_message(
+        content="Infelizmente a conexão com o servidor não foi estabelicida, tente novamente mais tarde.", 
+        ephemeral=True, 
+        delete_after=3
+      )
+      return False
+        
+    
 
     async def callback(self, interaction: discord.Interaction):
       user = interaction.user
@@ -27,10 +43,10 @@ class BtnJoinCustomMatch(ui.Button):
           delete_after=3
         )
       
-      if(checkUserIsRegistered(user) == False):
-        await self.requestLeagueName(interaction)
+      isRegistered = await self.checkRegisterLeague(interaction)
 
-      #SE ELE N ACHAR A CONTA DO USUARIO, NÃO PODE ENTRAR NA SALA
+      if not isRegistered:
+        return
       elif not user in self.confirmedUsers:
         await user.move_to(self.channelWaiting)
         self.confirmedUsers.append(user)
@@ -79,36 +95,36 @@ class BtnExitCustomMatch(ui.Button):
         await interaction.response.send_message(embed=discord.Embed(description="Você não está confirmado.", color=interaction.guild.me.color), ephemeral=True, delete_after=3)
 
 class BtnAmountCustomMatch(ui.Button):
-    def __init__(self):
-        super().__init__(label=f"0/10", style=discord.ButtonStyle.grey, emoji="🧑🏻‍💻",disabled=True)
+  def __init__(self):
+    super().__init__(label=f"0/10", style=discord.ButtonStyle.grey, emoji="🧑🏻‍💻",disabled=True)
 
-    async def callback(self, interaction: discord.Interaction):
-      return
+  async def callback(self, interaction: discord.Interaction):
+    return
 
 class BtnStartCustomMatch(ui.Button):
-    def __init__(self,userCallCommand:discord.User ,channelBlue: discord.VoiceChannel, channelRed: discord.VoiceChannel, confirmedUsers: list, embedMessageTeam, view:ui.View):
-      super().__init__(label="Start", style=discord.ButtonStyle.success, emoji="▶", disabled=True)
-      self.userCallCommand = userCallCommand
-      self.channelBlue = channelBlue
-      self.channelRed = channelRed
-      self.confirmedUsers = confirmedUsers
-      self.embedMessageTeam = embedMessageTeam
-      self.viewBtn = view
+  def __init__(self,userCallCommand:discord.User ,channelBlue: discord.VoiceChannel, channelRed: discord.VoiceChannel, confirmedUsers: list, embedMessageTeam, view:ui.View):
+    super().__init__(label="Start", style=discord.ButtonStyle.success, emoji="▶", disabled=True)
+    self.userCallCommand = userCallCommand
+    self.channelBlue = channelBlue
+    self.channelRed = channelRed
+    self.confirmedUsers = confirmedUsers
+    self.embedMessageTeam = embedMessageTeam
+    self.viewBtn = view
 
-    async def callback(self, interaction: discord.Interaction):
-      if (interaction.user == self.userCallCommand):
-        self.viewBtn.startBtn.disabled = True
-        self.viewBtn.exitBtn.disabled = True
-        blueTeam, redTeam = drawTeam(self.confirmedUsers)
-        textBlueTeam = generateTextUsers(blueTeam)
-        textRedTeam = generateTextUsers(redTeam)
-        await interaction.response.edit_message(
-          embed=self.embedMessageTeam(textBlueTeam, textRedTeam), 
-          view=self.viewBtn
-        )
-        await moveTeam(blueTeam, self.channelBlue)
-        await moveTeam(redTeam, self.channelRed)
-      else:
-        await interaction.response.send_message(embed=discord.Embed(description="Somente o criador da personalizada pode executar esta ação.", color=interaction.guild.me.color), ephemeral=True, delete_after=3)
+  async def callback(self, interaction: discord.Interaction):
+    if (interaction.user == self.userCallCommand):
+      self.viewBtn.startBtn.disabled = True
+      self.viewBtn.exitBtn.disabled = True
+      blueTeam, redTeam = drawTeam(self.confirmedUsers)
+      textBlueTeam = generateTextUsers(blueTeam)
+      textRedTeam = generateTextUsers(redTeam)
+      await interaction.response.edit_message(
+        embed=self.embedMessageTeam(textBlueTeam, textRedTeam), 
+        view=self.viewBtn
+      )
+      await moveTeam(blueTeam, self.channelBlue)
+      await moveTeam(redTeam, self.channelRed)
+    else:
+      await interaction.response.send_message(embed=discord.Embed(description="Somente o criador da personalizada pode executar esta ação.", color=interaction.guild.me.color), ephemeral=True, delete_after=3)
 
 

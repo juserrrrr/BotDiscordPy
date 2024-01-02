@@ -5,16 +5,17 @@ from discord.interactions import Interaction
 from discord.ui.item import Item
 from .selectInterfaces import createEssentialChannels
 from .btnInterfaces import *
+from base.BaseViews import BaseView
 import asyncio
 
 
-class ViewActionConfirm(ui.View):
+class ViewActionConfirm(BaseView):
     def __init__(self, channels):
         super().__init__()
         self.future = asyncio.Future()
         self.add_item(createEssentialChannels(channels, self.future))
 
-class ViewBtnInterface(ui.View):
+class ViewBtnInterface(BaseView):
     def __init__(self,userCallCommand ,channelWaiting: discord.VoiceChannel, channelHome: discord.VoiceChannel, channelBlue: discord.VoiceChannel, channelRed: discord.VoiceChannel,confirmedUsers: list, embedMessage, embedMessageTeam):
         super().__init__()
 
@@ -32,8 +33,5 @@ class ViewBtnInterface(ui.View):
         self.add_item(self.exitBtn)
         self.add_item(self.amountBtn)
         self.add_item(self.startBtn)
-    def on_error(self, interaction: Interaction, error: Exception, item: Item):
-        print(error.args[0])
-    
 
         
