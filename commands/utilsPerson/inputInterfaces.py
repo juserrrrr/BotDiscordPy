@@ -5,7 +5,9 @@ from base.BaseModal import BaseModal
 from services.lolService import lolService
 
 class ModalLeagueName(BaseModal, title="Registro de conta do League of Legends."):
-
+    def __init__(self):
+        super().__init__()
+        self.value = None
     
     leagueName = ui.TextInput(
         label="Nick da sua conta(Necessário uma única vez)",
@@ -55,8 +57,9 @@ class ModalLeagueName(BaseModal, title="Registro de conta do League of Legends."
         await viewConfirm.wait()
         replyMessage = 'Usuário não registrado.'
         if viewConfirm.value:
-          await createUserOnTimbas(interaction.user, dataPlayer.get('id'))
+          userCreated =  await createUserOnTimbas(interaction.user, dataPlayer)
           replyMessage = 'Usuário registrado com sucesso.'
+          self.value = userCreated
         
         await interaction.edit_original_response(
           content="",

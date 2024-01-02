@@ -5,7 +5,7 @@ from services.lolService import lolService
 from .confirmView import ConfirmView
 import asyncio
 
-def generateTextUsers(usersPersonList):
+def generateTextUsers(usersPersonList: list):
   string = ''
   tamanho = len(usersPersonList)
   for index, user in enumerate(usersPersonList):
@@ -42,12 +42,12 @@ def checkUserIsLeagueId(data):
   fieldNameLeagueId = 'leagueId'  
   return fieldNameLeagueId in data
 
-async def createUserOnTimbas(user:discord.User, leagueId):
+async def createUserOnTimbas(user:discord.User, userLeague):
   timbas = timbasService()
   response = timbas.createUser({
-    'name': user.name,
+    'name': userLeague.get('name'),
     'discordId': user.id,
-    'leagueId': leagueId,
+    'leagueId': userLeague.get('id'),
   })
   return response
 

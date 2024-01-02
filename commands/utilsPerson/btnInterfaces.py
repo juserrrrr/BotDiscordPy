@@ -13,7 +13,7 @@ class BtnJoinCustomMatch(ui.Button):
       self.embedMessage = embedMessage
       self.viewBtn = view
 
-    async def checkRegisterLeague(self, interaction: discord.Interaction):
+    async def checkAndGetRegisterLeague(self, interaction: discord.Interaction):
       timbasApi = timbasService()
       user = interaction.user
       responseUser = timbasApi.getUserByDiscordId(user.id)
@@ -22,34 +22,34 @@ class BtnJoinCustomMatch(ui.Button):
           modal = ModalLeagueName()
           await interaction.response.send_modal(modal)
           await modal.wait()
-          return False # Melhorar isso aqui depois.
-        return True
+          return modal.value.json() if modal.value is not None else None # Melhorar isso aqui depois.
+        return responseUser.json()
       await interaction.response.send_message(
         content="Infelizmente a conexão com o servidor não foi estabelicida, tente novamente mais tarde.", 
         ephemeral=True, 
         delete_after=3
       )
-      return False
+      return None
         
     
 
     async def callback(self, interaction: discord.Interaction):
-      user = interaction.user
-      if (user.voice == None):
-        await interaction.response.send_message(
+      userDiscord = interaction.user
+      if (userDiscord.voice == None):
+        return await interaction.response.send_message(
           embed=discord.Embed(description="Você não esta em um canal de voz.",
                               color=interaction.guild.me.color),
           ephemeral=True,
           delete_after=3
         )
       
-      userRegistered = await self.checkRegisterLeague(interaction)
+      userRegistered = await self.checkAndGetRegisterLeague(interaction)
 
-      if not userRegistered:
+      if userRegistered is None:
         return
-      elif not user in self.confirmedUsers:
-        await user.move_to(self.channelWaiting)
-        self.confirmedUsers.append(user)
+      elif not userDiscord in self.confirmedUsers:
+        await userDiscord.move_to(self.channelWaiting)
+        self.confirmedUsers.append(userDiscord)
         self.viewBtn.amountBtn.label = f"{len(self.confirmedUsers)}/10"
         if len(self.confirmedUsers) == 10:
             self.viewBtn.joinBtn.disabled = True
