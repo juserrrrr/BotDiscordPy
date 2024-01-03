@@ -45,15 +45,23 @@ class CriarPerson(commands.Cog):
             embed_message.set_image(url='https://i.imgur.com/kNWEtds.png')
             return embed_message
 
-        def embedMessageWinners(usersBlue, usersRed):
+        def embedMessageWinner(winnerTeam, blueUsers, redUsers):
+            iconWinner = '🏆'
+            iconLoser = '❌'
+            stateBlue = iconWinner if winnerTeam == 'blue' else iconLoser
+            stateRed = iconWinner if winnerTeam == 'red' else iconLoser
             embed_message = discord.Embed(
-                title=f"**League of Legends | Partida personalizada. 🚩 **",
-                description=f"**TimeAzul:**{usersBlue}\n**TimeVermelho:**{usersRed}",
+                title=f"**Partida personalizada ⚔️ **",
+                description=f"**League of Legends**",
                 color=0xFF0004,
             )
-            embed_message.set_image(url='https://i.imgur.com/kNWEtds.png')
             embed_message.set_footer(
-                text="🌐Timbas")
+                text="=✅Finalizada")
+            embed_message.add_field(
+                name=f"**Time Azul 🔵[{stateBlue}]**", value=f"{blueUsers}", inline=True)
+            embed_message.add_field(
+                name=f"**Time Vermelho 🔴[{stateRed}]**", value=f"{redUsers}", inline=True)
+            embed_message.set_image(url='https://i.imgur.com/kNWEtds.png')
             return embed_message
 
 
