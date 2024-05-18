@@ -10,7 +10,7 @@ class Apagar(commands.Cog):
     @app_commands.guild_only()
     async def apagar(self,interaction: discord.Interaction,quantidade:int):
       embed_message = discord.Embed(
-        title = f"🎅 │ **{interaction.guild.name}**",
+        title = f"🚨 │ **{interaction.guild.name}**",
         description = f"**Apagando {quantidade} {'mensagem' if quantidade == 1 else 'mensagens'}!**",
         color = 0xFF0004
       )

@@ -10,7 +10,7 @@ class Anunciar(commands.Cog):
     @app_commands.guild_only()
     async def anunciar(self,interaction: discord.Interaction,*,mensagem:str):
       embed_message = discord.Embed(
-        title = "🎮 │ **Anuncio**",
+        title = "🚨 │ **Anuncio**",
         description = f"**{mensagem}**",
         color = 0xFF0004
       )
