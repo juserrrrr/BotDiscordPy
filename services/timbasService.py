@@ -7,7 +7,7 @@ class timbasService():
     self.session = requests.session()
     self.token = os.getenv("TOKEN_TIMBAS_API")
     self.header = {'Authorization':f'Bearer {self.token}'}
-    self.url = "http://localhost:3000"
+    self.url = "https://api-timbas.vercel.app/"
 
   def getUserByDiscordId(self,discordId:str):
     url = f"{self.url}/users/discord/{discordId}"
@@ -20,5 +20,10 @@ class timbasService():
   def createUser(self, data:dict):
     url = f"{self.url}/users"
     response = self.session.post(url, headers=self.header, data=data)
+    return response
+  
+  def getWelcomeByServerId(self,serverId:str):
+    url = f"{self.url}/discordServer/welcomeMsg/{serverId}"
+    response = self.session.get(url, headers=self.header)
     return response
     

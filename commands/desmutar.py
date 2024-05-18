@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
+from services.timbasService import timbasService
 
 class Desmutar(commands.Cog):
     def __init__(self,client: commands.Bot):

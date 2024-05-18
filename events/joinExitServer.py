@@ -1,12 +1,18 @@
 import discord
 from discord.ext import commands
+from services.timbasService import timbasService
 
 class JoinServer(commands.Cog):
     def __init__(self,client):
         self.client = client
+        self.timbasService = timbasService()
     
     @commands.Cog.listener()
     async def on_member_join(self,member):
+        # response = self.timbasService.getWelcomeByServerId(member.guild.id)
+        # msg = response.json().get('welcomeMessage')
+        # description = msg if msg else f"{member.mention} acaba de entrar no {member.guild.name}."
+        # print(description)
         channelDoor = self.client.get_channel(919076619451269160)
         embed_message = discord.Embed(
             title = "🎉 │ Bem-vindo(a)!",
@@ -30,6 +36,7 @@ class JoinServer(commands.Cog):
     @commands.Cog.listener()
     async def on_member_remove(self,member: discord.Member):
         channelDoor = self.client.get_channel(919076619451269160)
+        
         embed_message = discord.Embed(
             title = "🏃 │ Até a proxima!",
             description = f"{member.mention} acaba de sair do {member.guild.name}.",

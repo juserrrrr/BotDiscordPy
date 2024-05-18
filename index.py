@@ -3,6 +3,7 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 import asyncio
+from services.timbasService import timbasService
 
 load_dotenv("config.env")
 
