@@ -27,7 +27,7 @@ def generateTextUsersLeague(usersPersonList: list, formate, onlineMode):
   endString += f"{'':<13}{'Partida personalizada ⚔️':^27}{'':>13}\n"
   endString += f"{'':<8} {mapName:^39} {'':>8}\n"
   endString += f"{formateString:<23}{'':^9}{onlineModeString:>23}\n"
-  endString += f"{'TimeAzul':<23}{'< OUR >':^9}{'TimeVermelho':>23}\n"
+  endString += f"{'TimeAzul':<23}{'< EQP >':^9}{'TimeVermelho':>23}\n"
   endString += f"{'':<23}{'00     00':^9}{'':>23}\n"
   endString += f"{'':<23}{'00:00':^9}{'':>23}\n"
 
