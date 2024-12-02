@@ -15,7 +15,7 @@ def generateTextUsers(usersPersonList: list):
 
 
 def generateTextUsersLeague(usersPersonList: list, formate, onlineMode):
-  # 55 Carecteres do emebed 
+  # 55 Carecteres do emebed
   half = 5
   blueTeam = usersPersonList[:half]
   redTeam = usersPersonList[half:]
@@ -23,7 +23,8 @@ def generateTextUsersLeague(usersPersonList: list, formate, onlineMode):
   onlineModeString = f"Modo: {'Online' if onlineMode.value == 1 else 'Offline'}"
   mapName = "[League of Legends] - Summoner's rift"
   endString = ""
-  endString = f"{'--------------------------':<26}{'-*-':^3}{'--------------------------':>26}\n"
+  endString += f"{'--------------------------':<26}{'-*-':^3}{'--------------------------':>26}\n"
+  endString += f"{'':<13}{'Partida personalizada ⚔️':^27}{'':>13}\n"
   endString += f"{'':<8} {mapName:^39} {'':>8}\n"
   endString += f"{formateString:<23}{'':^9}{onlineModeString:>23}\n"
   endString += f"{'TimeAzul':<23}{'< OUR >':^9}{'TimeVermelho':>23}\n"
@@ -31,7 +32,7 @@ def generateTextUsersLeague(usersPersonList: list, formate, onlineMode):
   endString += f"{'':<23}{'00:00':^9}{'':>23}\n"
 
   for i in range(half):
-    #25 por lado
+    # 25 por lado
     blueString = f"{blueTeam[i].name[:11]:<12}{'000':>3}{'00/00/00':>9}" if len(
         blueTeam) > i else f"{'Vazio':<24}"
     redString = f"{'00/00/00':<9}{'000':<3}{redTeam[i].name[:11]:>12}" if len(

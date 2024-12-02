@@ -14,13 +14,11 @@ class CriarPerson(commands.Cog):
   def generateEmbedConfirmed(self, confirmed: list, onlineMode: app_commands.Choice[int], formate: app_commands.Choice[int]):
     stringConfirmed = generateTextUsersLeague(confirmed, onlineMode, formate)
     embedMessage = discord.Embed(
-        title="**Partida personalizada ⚔️**",
         description=f"\n```{stringConfirmed}```",
         color=0xFF0004,
     )
     embedMessage.set_footer(
         text="⏳Aguardando jogadores...")
-    # embedMessage.set_image(url='https://i.imgur.com/kNWEtds.png')
     return embedMessage
 
   def embedMessageTeam(self, blueUsers, redUsers):
@@ -110,9 +108,9 @@ class CriarPerson(commands.Cog):
     # Verificar se ja foi respondida a mensagem, se não, responde, se sim manda um follwup
     if interaction.response.is_done():
       await interaction.delete_original_response()
-      await interaction.followup.send(embed=embedMessageCreate, view=viewBtns)
+      await interaction.followup.send(embed=embedMessageCreate, view=viewBtns, file=discord.File('./images/timbasQueue.png'))
     else:
-      await interaction.response.send_message(embed=embedMessageCreate, view=viewBtns)
+      await interaction.response.send_message(embed=embedMessageCreate, view=viewBtns, file=discord.File('./images/timbasQueue.jpg'))
 
 
 async def setup(client):
