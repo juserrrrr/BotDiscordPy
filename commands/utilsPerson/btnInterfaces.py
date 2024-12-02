@@ -50,7 +50,7 @@ class BtnJoinCustomMatch(ui.Button):
 
     if userRegistered is None and self.onlineMode.value == 1:
       return
-    elif not userDiscord in self.confirmedUsers or True:
+    elif not userDiscord in self.confirmedUsers:
       await userDiscord.move_to(self.channelWaiting)
       self.confirmedUsers.append(userDiscord)
       self.viewBtn.amountBtn.label = f"{len(self.confirmedUsers)}/10"
