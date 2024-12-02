@@ -110,7 +110,7 @@ class CriarPerson(commands.Cog):
       await interaction.delete_original_response()
       await interaction.followup.send(embed=embedMessageCreate, view=viewBtns, file=discord.File('./images/timbasQueue.png'))
     else:
-      await interaction.response.send_message(embed=embedMessageCreate, view=viewBtns, file=discord.File('./images/timbasQueue.jpg'))
+      await interaction.response.send_message(embed=embedMessageCreate, view=viewBtns, file=discord.File('./images/timbasQueue.png'))
 
 
 async def setup(client):
