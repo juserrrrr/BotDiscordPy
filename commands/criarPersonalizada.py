@@ -1,117 +1,134 @@
-
+import discord
+from discord.ui import Button, View
 from discord import app_commands
 from discord.ext import commands
-from .utilsPerson.viewInterfaces import *
-from .utilsPerson.inputInterfaces import *
-from .utilsPerson.utilsFunc import *
+from random import randint
 
 
 class CriarPerson(commands.Cog):
-  def __init__(self, client: discord.Client):
-    self.client = client
-    # Função para gerar a mensagem embed dos jogadores confirmados
+    def __init__(self,client:discord.Client):
+        self.client = client
 
-  def generateEmbedConfirmed(self, confirmed: list, onlineMode: app_commands.Choice[int], formate: app_commands.Choice[int]):
-    stringConfirmed = generateTextUsersLeague(confirmed, onlineMode, formate)
-    embedMessage = discord.Embed(
-        description=f"\n```{stringConfirmed}```",
-        color=0xFF0004,
-    )
-    embedMessage.set_footer(
-        text="⏳Aguardando jogadores...")
-    return embedMessage
+    @app_commands.command(name = 'criarperson',description="Cria uma mensagem para que os usuarios possam entrar no sorteio da partida personalizada.")
+    @app_commands.guild_only()
+    async def criarPerson(self,interaction: discord.Interaction,limite: int):    
+      #Funções
+      def gerarTextoUsers(usersPersonList):
+        string = ''
+        tamanho = len(usersPersonList)
+        for index,user in enumerate(usersPersonList):
+          if index == (tamanho-1):
+            string += f" {user.name}"
+          else:
+            string += f" {user.name} |"
+        return string  
+      
+      def sorteadorTimes(userParticipantes):
+        time_azul = []
+        time_vermelho = []
+        while userParticipantes:
+          value1 = randint(0,len(userParticipantes)-1)
+          time_azul.append(userParticipantes[value1])
+          userParticipantes.pop(value1)
+          value2 = randint(0,len(userParticipantes)-1)
+          time_vermelho.append(userParticipantes[value2])
+          userParticipantes.pop(value2)
+        return (time_azul,time_vermelho)
 
-  def embedMessageTeam(self, blueUsers, redUsers):
-    embedMessage = discord.Embed(
-        title="**Partida personalizada ⚔️ **",
-        description="**League of Legends**",
-        color=0xFF0004,
-    )
-    embedMessage.set_footer(
-        text="⏳Aguardando início da partida")
-    embedMessage.add_field(
-        name="**Time Azul 🔵**", value=f"{blueUsers}", inline=True)
-    embedMessage.add_field(
-        name="**Time Vermelho 🔴**", value=f"{redUsers}", inline=True)
-    embedMessage.set_image(url='https://i.imgur.com/kNWEtds.png')
-    return embedMessage
+      async def moverTime(time,channel):
+        channel_azul = await self.client.fetch_channel(channel)
+        for user in time:
+          await user.move_to(channel_azul)
 
-  def embedMessageWinner(self, winnerTeam, blueUsers, redUsers):
-    iconWinner = '🏆'
-    iconLoser = '❌'
-    stateBlue = iconWinner if winnerTeam == 'blue' else iconLoser
-    stateRed = iconWinner if winnerTeam == 'red' else iconLoser
-    embed_message = discord.Embed(
-        title="**Partida personalizada ⚔️ **",
-        description="**League of Legends**",
-        color=0xFF0004,
-    )
-    embed_message.set_footer(
-        text="=✅Finalizada")
-    embed_message.add_field(
-        name=f"**Time Azul 🔵[{stateBlue}]**", value=f"{blueUsers}", inline=True)
-    embed_message.add_field(
-        name=f"**Time Vermelho 🔴[{stateRed}]**", value=f"{redUsers}", inline=True)
-    embed_message.set_image(url='https://i.imgur.com/kNWEtds.png')
-    return embed_message
+          
 
-  @app_commands.command(name='criarperson', description="Cria uma mensagem para que os usuarios possam entrar no sorteio da partida personalizada.")
-  @app_commands.guild_only()
-  @app_commands.rename(onlineMode="modo", formate="formato")
-  @app_commands.choices(onlineMode=[
-      app_commands.Choice(name="Online", value=1),
-      app_commands.Choice(name="Offline", value=0)
-  ], formate=[
-      app_commands.Choice(name="Aleatório", value=0),
-      app_commands.Choice(name="Livre", value=1),
-  ])
-  async def criarPerson(self, interaction: discord.Interaction, onlineMode: app_commands.Choice[int], formate: app_commands.Choice[int]):
+      def embedMessage(confirmados):
+        embed_message = discord.Embed(
+          title = f"**{interaction.guild.name} | Partida personalizada 🚩 **",
+          description = f"**Confirmados:**{confirmados}",
+          color = 0xFF0004,
+        )
+        embed_message.set_thumbnail(url = 'https://i.imgur.com/z3rGL5L.png')
+        embed_message.set_footer(icon_url=interaction.guild.icon.url,text="SysTeamBahia v0.5")
+        return embed_message
 
-    # Variaveis
-    confirmedUsers = []
-    guildChannelsDict = {
-        channel.name: channel for channel in interaction.guild.channels}
-    channelNameWaiting = '| 🕘 | AGUARDANDO'
-    channelNameBlue = 'LADO [ |🔵| ]'
-    channelNameRed = 'LADO [ |🔴| ]'
-    userCallCommand = interaction.user  # Usuario que chamou o comando
+      def embedMessageWinners(usersAzul,usersVermelho):
+        embed_message = discord.Embed(
+          title = f"**{interaction.guild.name} | Partida personalizada 🚩 **",
+          description = f"**TimeAzul:**{usersAzul}\n**TimeVermelho:**{usersVermelho}",
+          color = 0xFF0004,
+        )
+        embed_message.set_thumbnail(url = 'https://i.imgur.com/z3rGL5L.png')
+        embed_message.set_footer(icon_url=interaction.guild.icon.url,text="SysTeamBahia v0.5")
+        return embed_message
 
-    # Verificar se o servidor possui os canais essenciais para o funcionamento da fila.
-    if not all(channel in guildChannelsDict.keys() for channel in [channelNameWaiting, channelNameBlue, channelNameRed]):
-      # Criar a view para confirmar a criação dos canais.
-      viewCreateChannels = ViewActionConfirm(
-          channels=[channelNameWaiting, channelNameBlue, channelNameRed])
-      # Enviar a mensagem para o usuario permitir a criação dos canais.
-      await interaction.response.send_message(content="Percebi que o servidor não possui os canais de voz essenciais para o funcionamento da fila. Será que você poderia me permitir criar esses canais?", ephemeral=True, view=viewCreateChannels)
-      try:
-        responseCreate = await asyncio.wait_for(viewCreateChannels.future, timeout=60)
-        if responseCreate == '0':
-          return
-      except asyncio.TimeoutError:
-        # Limite de tempo excedido, evento cancelado.
-        return await interaction.delete_original_response()
+      async def buttonEntrarPerson(interaction_entrar:discord.Interaction):
+        user = interaction_entrar.user
+        if not user in users_confirmados:
+          await user.move_to(channel_aguardado)
+          users_confirmados.append(user)
+          button_Qnt.label = f"{len(users_confirmados)}/{limite}"
+          if len(users_confirmados) >= limite:
+            button_Entrar.disabled = True
+            button_Sortear.disabled = False
+          await interaction_entrar.response.edit_message(embed=embedMessage(gerarTextoUsers(users_confirmados)),view=view)   
+        else:
+          await interaction_entrar.response.send_message(embed=discord.Embed(description="Você já esta confirmado.",color=interaction.guild.me.color),ephemeral=True,delete_after=3)
 
-    # 1. Pegar os canais de voz essenciais para o funcionamento da fila.
-    guildChannelsDict = {
-        channel.name: channel for channel in interaction.guild.channels}
+      async def buttonSairPerson(interaction_sair:discord.Interaction):
+        user = interaction_sair.user
+        if user in users_confirmados:
+          await user.move_to(channel_principal)
+          users_confirmados.remove(user)
+          button_Qnt.label = f"{len(users_confirmados)}/{limite}"
+          if len(users_confirmados) < limite:
+            button_Entrar.disabled = False
+            button_Sortear.disabled = True
+          await interaction_sair.response.edit_message(embed=embedMessage(gerarTextoUsers(users_confirmados)),view=view)
+        else:
+          await interaction_sair.response.send_message(embed=discord.Embed(description="Você não esta na lista de confirmados.",color=interaction.guild.me.color),ephemeral=True,delete_after=3)
 
-    channelWaiting = guildChannelsDict[channelNameWaiting]
-    channelBlue = guildChannelsDict[channelNameBlue]
-    channelRed = guildChannelsDict[channelNameRed]
-    # 2. Fazer os views para configuração da personalizada.
+      async def buttonSortearPerson(interaction_sortear:discord.Interaction):
+        if(interaction_sortear.user == interaction.user):
+          button_Sortear.disabled = True
+          button_Sair.disabled = True
+          time_azul, time_vermelho = sorteadorTimes(users_confirmados)
+          timeAzul = gerarTextoUsers(time_azul)
+          timeVermelho = gerarTextoUsers(time_vermelho)
+          await interaction_sortear.response.edit_message(embed=embedMessageWinners(timeAzul,timeVermelho),view=view)
+          await moverTime(time_azul,785652356217962516)
+          await moverTime(time_vermelho,785652405915222029)
+        else:
+          await interaction_sortear.response.send_message(embed=discord.Embed(description="Somente o criador da personalizada pode executar esta ação.",color=interaction.guild.me.color),ephemeral=True,delete_after=3)
 
-    # 3. Criar a personalizada.
-    embedMessageCreate = self.generateEmbedConfirmed(
-        confirmedUsers, onlineMode, formate)
-    viewBtns = ViewBtnInterface(userCallCommand, channelWaiting, channelBlue,
-                                channelRed, confirmedUsers, self.generateEmbedConfirmed, self.embedMessageTeam, onlineMode, formate)
-    # Verificar se ja foi respondida a mensagem, se não, responde, se sim manda um follwup
-    if interaction.response.is_done():
-      await interaction.delete_original_response()
-      await interaction.followup.send(embed=embedMessageCreate, view=viewBtns, file=discord.File('./images/timbasQueue.png'))
-    else:
-      await interaction.response.send_message(embed=embedMessageCreate, view=viewBtns, file=discord.File('./images/timbasQueue.png'))
+      #Procedimentos
+        #Variaveis
+      channel_principal = await self.client.fetch_channel(785653602928033802)
+      channel_aguardado = await self.client.fetch_channel(854680472206442537)
+      users_confirmados = []
 
+      button_Entrar = Button(label="Entrar",style=discord.ButtonStyle.green, emoji="✔")
+      button_Entrar.callback = buttonEntrarPerson
+
+      button_Sair = Button(label="Sair",style=discord.ButtonStyle.red, emoji="❌")
+      button_Sair.callback = buttonSairPerson
+
+      button_Qnt = Button(label=f"0/{limite}",style=discord.ButtonStyle.grey, emoji="👨‍👩‍👦",disabled=True)
+
+      button_Sortear = Button(label="Start",style=discord.ButtonStyle.success, emoji="▶",disabled=True)
+      button_Sortear.callback = buttonSortearPerson
+
+
+      view = View()
+      view.add_item(button_Entrar)
+      view.add_item(button_Sair)
+      view.add_item(button_Qnt)
+      view.add_item(button_Sortear)
+    
+    
+      embed_message = embedMessage('')
+      await interaction.response.send_message(embed=discord.Embed(description="Comando executado com sucesso!",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
+      await interaction.channel.send(embed = embed_message, view = view)    
 
 async def setup(client):
-  await client.add_cog(CriarPerson(client))
+    await client.add_cog(CriarPerson(client))
