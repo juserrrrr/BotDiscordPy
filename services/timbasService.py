@@ -19,8 +19,8 @@ class timbasService():
     except Exception as exp:
       return None
 
-  def createUser(self, data: dict):
-    url = f"{self.url}/users"
+  def createPlayer(self, data: dict):
+    url = f"{self.url}/users/player"
     response = self.session.post(url, headers=self.header, data=data)
     return response
 

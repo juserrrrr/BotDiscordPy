@@ -25,6 +25,7 @@ class VerificationView(ui.View):
     if currentProfileIcon.json().get('profileIconId') == self.verificationIconId:
       userCreated = await createUserOnTimbas(interaction.user, self.dataPlayer)
       print(userCreated.status_code)
+      print(userCreated.json())
       if userCreated.status_code != 201:
         self.replyMessage = 'Erro ao registrar usuário. Tente novamente mais tarde.'
         self.value = False

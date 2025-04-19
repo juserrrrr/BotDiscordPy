@@ -74,7 +74,7 @@ def checkUserIsLeagueId(data):
 
 async def createUserOnTimbas(user: discord.User, userLeague):
   timbas = timbasService()
-  response = timbas.createUser({
+  response = timbas.createPlayer({
       'name': userLeague.get('name'),
       'discordId': user.id,
       'leagueId': userLeague.get('id'),
@@ -86,7 +86,7 @@ def checkUserLeagueExists(response):
   return response.status_code == 200
 
 
-def getDataPlayerLeague(dataSummoner, dataAccount,dataRank):
+def getDataPlayerLeague(dataSummoner, dataAccount, dataRank):
 
   rankedSoloName = 'RANKED_SOLO_5x5'
   rankedFlexName = 'RANKED_FLEX_SR'
