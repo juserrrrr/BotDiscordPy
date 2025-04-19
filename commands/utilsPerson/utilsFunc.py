@@ -59,8 +59,18 @@ async def moveTeam(team, channel: discord.VoiceChannel):
     await user.move_to(channel)
 
 
+def cleanInvalidCharacters(text: str) -> str:
+  # Remove espaços em branco no início e fim
+  text = text.strip()
+  # Remove caracteres Unicode invisíveis específicos
+  text = text.replace('\u2066', '').replace('\u2069', '')
+  # Remove caracteres especiais, mantendo apenas letras, números e #
+  return ''.join(c for c in text if c.isalnum() or c == '#')
+
+
 def splitUserTag(nameLeague):
-  return nameLeague.split('#')
+  cleanedName = cleanInvalidCharacters(nameLeague)
+  return cleanedName.split('#')
 
 
 def checkUserIsRegistered(response):
