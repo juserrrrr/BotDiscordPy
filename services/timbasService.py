@@ -15,6 +15,7 @@ class timbasService():
     url = f"{self.url}/users/discord/{discordId}"
     try:
       response = self.session.get(url, headers=self.header, timeout=1)
+      print(response.json())
       return response
     except Exception as exp:
       return None

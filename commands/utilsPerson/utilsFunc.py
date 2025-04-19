@@ -64,7 +64,7 @@ def splitUserTag(nameLeague):
 
 
 def checkUserIsRegistered(response):
-  return response.status_code == 200
+  return response.status_code == 200 and response.json().get('leaguePuuid') is not None
 
 
 def checkUserIsLeagueId(data):
