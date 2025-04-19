@@ -3,10 +3,12 @@ from discord import ui
 from .utilsFunc import *
 from base.BaseModal import BaseModal
 from services.lolService import lolService
+from .verificationView import VerificationView
 import asyncio
+import random
 
 
-class ModalLeagueName(BaseModal, title="Registro de conta do League of Legends."):
+class ModalLeagueVerification(BaseModal, title="Verificação de conta do League of Legends"):
   def __init__(self):
     super().__init__()
     self.value = None
@@ -19,6 +21,13 @@ class ModalLeagueName(BaseModal, title="Registro de conta do League of Legends."
       custom_id="leagueName",
       required=True
   )
+
+  async def getRandomIconId(self, currentIconId: int) -> int:
+    # Lista de ícones disponíveis (você pode ajustar conforme necessário)
+    availableIcons = list(range(1, 30))  # Exemplo: ícones de 1 a 29
+    if currentIconId in availableIcons:
+      availableIcons.remove(currentIconId)
+    return random.choice(availableIcons)
 
   async def on_submit(self, interaction: discord.Interaction):
     if self.leagueName.value.count('#') != 1:
@@ -34,12 +43,20 @@ class ModalLeagueName(BaseModal, title="Registro de conta do League of Legends."
       await asyncio.sleep(2)
       return await interaction.delete_original_response()
     else:
-      viewConfirm = ConfirmView()
+      # Verificar o ícone atual do usuário
+      currentProfileIcon = await leagueService.getSummonerByPuuid(dataPlayer.get('puuid'))
+      currentIconId = currentProfileIcon.json().get('profileIconId')
+
+      # Escolher um ícone aleatório diferente do atual
+      verificationIconId = await self.getRandomIconId(currentIconId)
+      verificationIconUrl = leagueService.getUrlProfileIcon(verificationIconId)
+
+      viewVerification = VerificationView()
       await interaction.edit_original_response(
           content="",
           embed=discord.Embed(
               title=f"**{dataPlayer.get('name')}**, é você?",
-              description=f"**Infomações sobre o jogador**",
+              description=f"**Para confirmar que esta conta é sua, por favor:**\n1. Mude seu ícone de perfil para o ícone abaixo\n2. Clique no botão 'Verificar' após mudar o ícone",
               color=0x00FF00
           ).add_field(
               name="Solo/Duo",
@@ -51,17 +68,23 @@ class ModalLeagueName(BaseModal, title="Registro de conta do League of Legends."
               name="Level",
               value=f"**{dataPlayer.get('level')}**"
           ).set_thumbnail(
-              url=leagueService.getUrlProfileIcon(
-                  dataPlayer.get('profileIconId'))
+              url=verificationIconUrl
           ),
-          view=viewConfirm
+          view=viewVerification
       )
-      await viewConfirm.wait()
-      replyMessage = 'Usuário não registrado.'
-      if viewConfirm.value:
-        userCreated = await createUserOnTimbas(interaction.user, dataPlayer)
-        replyMessage = 'Usuário registrado com sucesso.'
-        self.value = userCreated
+
+      await viewVerification.wait()
+      if viewVerification.value:
+        # Verificar se o usuário mudou o ícone
+        currentProfileIcon = await leagueService.getSummonerByPuuid(dataPlayer.get('puuid'))
+        if currentProfileIcon.json().get('profileIconId') == verificationIconId:
+          userCreated = await createUserOnTimbas(interaction.user, dataPlayer)
+          replyMessage = 'Usuário registrado com sucesso.'
+          self.value = userCreated
+        else:
+          replyMessage = 'Você não mudou o ícone de perfil. Por favor, tente novamente.'
+      else:
+        replyMessage = 'Usuário não registrado.'
 
       await interaction.edit_original_response(
           content="",
