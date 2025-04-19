@@ -52,7 +52,8 @@ class ModalLeagueVerification(BaseModal, title="Verificação de conta do League
       verificationIconId = await self.getRandomIconId(currentIconId)
       verificationIconUrl = leagueService.getUrlProfileIcon(verificationIconId)
 
-      viewVerification = VerificationView()
+      viewVerification = VerificationView(
+          leagueService, dataPlayer, verificationIconId)
       await interaction.edit_original_response(
           content="",
           embed=discord.Embed(
@@ -75,18 +76,7 @@ class ModalLeagueVerification(BaseModal, title="Verificação de conta do League
       )
 
       await viewVerification.wait()
-      if viewVerification.value:
-        # Verificar se o usuário mudou o ícone
-        currentProfileIcon = leagueService.getSummonerByPuuid(
-            dataPlayer.get('puuid'))
-        if currentProfileIcon.json().get('profileIconId') == verificationIconId:
-          userCreated = await createUserOnTimbas(interaction.user, dataPlayer)
-          replyMessage = 'Usuário registrado com sucesso.'
-          self.value = userCreated
-        else:
-          replyMessage = 'Você não mudou o ícone de perfil. Por favor, tente novamente.'
-      else:
-        replyMessage = 'Usuário não registrado.'
+      replyMessage = viewVerification.replyMessage
 
       await interaction.edit_original_response(
           content="",

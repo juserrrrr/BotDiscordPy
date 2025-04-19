@@ -103,6 +103,7 @@ def getDataPlayerLeague(dataSummoner, dataAccount,dataRank):
   return {
       'name': dataAccount.get('gameName'),
       'profileIconId': dataSummoner.get('profileIconId'),
+      'puuid': dataAccount.get('puuid'),
       'level': dataSummoner.get('summonerLevel'),
       'tierSolo': (rankedDadosSolo or {}).get('tier', ''),
       'rankSolo': (rankedDadosSolo or {}).get('rank', 'Unranked'),
