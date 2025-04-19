@@ -27,6 +27,8 @@ class ViewBtnInterface(BaseView):
       formate: app_commands.Choice[int]
   ):
     super().__init__()
+    self.onlineMode = onlineMode
+    self.formate = formate
 
     self.joinBtn = BtnJoinCustomMatch(
         channelWaiting, confirmedUsers, embedMessageConfirm, onlineMode, formate, self
@@ -35,15 +37,26 @@ class ViewBtnInterface(BaseView):
         channelWaiting, confirmedUsers, embedMessageConfirm, onlineMode, formate, self
     )
     self.amountBtn = BtnAmountCustomMatch()
+    self.sortearBtn = BtnSortearCustomMatch(
+        confirmedUsers, embedMessageTeam, self, onlineMode, formate
+    )
     self.startBtn = BtnStartCustomMatch(
-        userCallCommand, channelBlue, channelRed, confirmedUsers, embedMessageTeam, self
+        userCallCommand, channelBlue, channelRed, confirmedUsers, embedMessageTeam, self, onlineMode, formate
+    )
+    self.finishBtn = BtnFinishCustomMatch(
+        userCallCommand, embedMessageTeam, self, onlineMode, formate
     )
     self.switchSideBtn = BtnSwitchSideCustomMatch(
-        channelBlue, channelRed, confirmedUsers, embedMessageTeam, self
+        channelBlue, channelRed, confirmedUsers, embedMessageTeam, self, onlineMode, formate
     )
     self.add_item(self.joinBtn)
     self.add_item(self.exitBtn)
-    if formate.value == 1:
-      self.add_item(self.switchSideBtn)
     self.add_item(self.amountBtn)
     self.add_item(self.startBtn)
+    self.add_item(self.finishBtn)
+    if formate.value == 1:
+      self.switchSideBtn.disabled = True
+      self.add_item(self.switchSideBtn)
+    if formate.value == 0:
+      self.sortearBtn.disabled = True
+      self.add_item(self.sortearBtn)

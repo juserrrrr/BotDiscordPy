@@ -11,28 +11,30 @@ class CriarPerson(commands.Cog):
     # Função para gerar a mensagem embed dos jogadores confirmados
 
   def generateEmbedConfirmed(self, confirmed: list, onlineMode: app_commands.Choice[int], formate: app_commands.Choice[int]):
-    stringConfirmed = generateTextUsersLeague(confirmed, onlineMode, formate)
+    stringConfirmed = generateTextUsersLeague(confirmed, formate, onlineMode)
     embedMessage = discord.Embed(
         description=f"\n```{stringConfirmed}```",
         color=0xFF0004,
     )
     embedMessage.set_footer(
-        text="⏳Aguardando jogadores...")
+        text="⏳ Aguardando jogadores..." if len(confirmed) < 10 else ("⏳ Aguardando sorteio..." if formate.value == 0 else "⏳ Aguardando início da partida..."))
     return embedMessage
 
-  def embedMessageTeam(self, blueUsers, redUsers):
+  def embedMessageTeam(self, blueUsers, redUsers, onlineMode, formate, started=False, finished=False):
+    stringConfirmed = generateTextUsersLeague(
+        blueUsers + redUsers, formate, onlineMode)
     embedMessage = discord.Embed(
-        title="**Partida personalizada ⚔️ **",
-        description="**League of Legends**",
+        description=f"\n```{stringConfirmed}```",
         color=0xFF0004,
     )
-    embedMessage.set_footer(
-        text="⏳Aguardando início da partida")
-    embedMessage.add_field(
-        name="**Time Azul 🔵**", value=f"{blueUsers}", inline=True)
-    embedMessage.add_field(
-        name="**Time Vermelho 🔴**", value=f"{redUsers}", inline=True)
-    embedMessage.set_image(url='https://i.imgur.com/kNWEtds.png')
+
+    if finished:
+      embedMessage.set_footer(text="✅ Partida finalizada!")
+    elif started:
+      embedMessage.set_footer(text="🔴 Partida em andamento!")
+    else:
+      embedMessage.set_footer(text="⏳ Aguardando início da partida!")
+
     return embedMessage
 
   def embedMessageWinner(self, winnerTeam, blueUsers, redUsers):
