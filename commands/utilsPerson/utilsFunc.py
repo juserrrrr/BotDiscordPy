@@ -132,3 +132,107 @@ def checkAndGetDataPlayerLeague(lolService, userName):
         responseSummoner.json().get('id'))
     return getDataPlayerLeague(responseSummoner.json(), responseAccount.json(), responseRank.json())
   return None
+
+
+# Trabalhar no balanceamento dos times com o MMR (Futuro)
+def calculateMmrLol(rank: str) -> int:
+  #Converte um rank do League of Legends em um valor MMR numérico
+  rank_tiers = {
+      'IRON': 0,
+      'BRONZE': 400,
+      'SILVER': 800,
+      'GOLD': 1200,
+      'PLATINUM': 1600,
+      'EMERALD': 2000,
+      'DIAMOND': 2400,
+      'MASTER': 2800,
+      'GRANDMASTER': 3200,
+      'CHALLENGER': 3600
+  }
+
+  rank_divisions = {
+      'IV': 0,
+      'III': 100,
+      'II': 200,
+      'I': 300
+  }
+
+  # Separa o rank em tier e divisão
+  tier = rank.split()[0].upper()
+  division = rank.split()[1] if len(rank.split()) > 1 else 'IV'
+
+  # Calcula o MMR base
+  mmr = rank_tiers.get(tier, 0)
+
+  # Adiciona o valor da divisão
+  mmr += rank_divisions.get(division, 0)
+
+  return mmr
+
+
+def balanceTeamsLol(users: list) -> tuple:
+  # Balanceia os times do League of Legends baseado no MMR dos jogadores
+  if len(users) != 10:
+    return None, None
+
+  # Calcula o MMR de cada jogador
+  users_with_mmr = []
+  for user in users:
+    # Vou precisar buscar os dados do usuário na API do lol e pegar o rank do usuário
+
+    # Só estou assuimindo que o rank tá armazenado em user.rank
+    mmr = calculateMmrLol(user.rank) if hasattr(user, 'rank') else 0
+    users_with_mmr.append((user, mmr))
+
+  # Ordena os jogadores por MMR
+  users_with_mmr.sort(key=lambda x: x[1], reverse=True)
+
+  # Inicializa os times
+  team1 = []
+  team2 = []
+  team1_mmr = 0
+  team2_mmr = 0
+
+  # Distribui os jogadores alternadamente entre os times
+  for i, (user, mmr) in enumerate(users_with_mmr):
+    if i % 2 == 0:
+      team1.append(user)
+      team1_mmr += mmr
+    else:
+      team2.append(user)
+      team2_mmr += mmr
+
+  # Se a diferença de MMR for muito grande, tenta rebalancear
+  while abs(team1_mmr - team2_mmr) > 200 and len(team1) > 0 and len(team2) > 0:
+    # Encontra o jogador com MMR mais próximo da diferença
+    best_swap = None
+    best_diff = float('inf')
+
+    for i, (user1, mmr1) in enumerate(users_with_mmr):
+      if user1 in team1:
+        for j, (user2, mmr2) in enumerate(users_with_mmr):
+          if user2 in team2:
+            new_diff = abs((team1_mmr - mmr1 + mmr2) -
+                           (team2_mmr - mmr2 + mmr1))
+            if new_diff < best_diff:
+              best_diff = new_diff
+              best_swap = (i, j)
+
+    if best_swap is not None:
+      i, j = best_swap
+      user1, mmr1 = users_with_mmr[i]
+      user2, mmr2 = users_with_mmr[j]
+
+      # Faz a troca
+      team1.remove(user1)
+      team2.remove(user2)
+      team1.append(user2)
+      team2.append(user1)
+
+      # Atualiza os MMRs
+      team1_mmr = team1_mmr - mmr1 + mmr2
+      team2_mmr = team2_mmr - mmr2 + mmr1
+    else:
+      break
+
+  return team1, team2

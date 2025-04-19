@@ -189,12 +189,11 @@ class BtnStartCustomMatch(ui.Button):
       self.viewBtn.exitBtn.disabled = True
       self.viewBtn.sortearBtn.disabled = True
       self.viewBtn.finishBtn.disabled = False
-  
 
       # Remove o botão de trocar de lado e ajusta a posição do botão de finalizar
       if self.viewBtn.switchSideBtn in self.viewBtn.children:
         self.viewBtn.remove_item(self.viewBtn.switchSideBtn)
-      
+
       if self.viewBtn.sortearBtn in self.viewBtn.children:
         self.viewBtn.remove_item(self.viewBtn.sortearBtn)
 
