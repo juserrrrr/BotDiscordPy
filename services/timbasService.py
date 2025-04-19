@@ -1,4 +1,3 @@
-
 import requests
 import os
 
@@ -8,7 +7,9 @@ class timbasService():
     self.session = requests.session()
     self.token = os.getenv("TOKEN_TIMBAS_API")
     self.header = {'Authorization': f'Bearer {self.token}'}
-    self.url = "https://api-timbas.vercel.app/"
+    self.url = os.getenv("TIMBAS_API_URL")
+    if not self.url:
+      raise ValueError("TIMBAS_API_URL não configurada no arquivo .env")
 
   def getUserByDiscordId(self, discordId: str):
     url = f"{self.url}/users/discord/{discordId}"
