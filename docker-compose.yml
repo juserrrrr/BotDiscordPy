@@ -1,0 +1,24 @@
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: discord_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - ENV_TYPE=${ENV_TYPE}
+      - TOKEN_BOT=${TOKEN_BOT}
+      - TOKEN_BOT_TEST=${TOKEN_BOT_TEST}
+      - TOKEN_LOL_API=${TOKEN_LOL_API}
+      - TOKEN_TIMBAS_API=${TOKEN_TIMBAS_API}
+      - TIMBAS_API_URL=${TIMBAS_API_URL}
+    volumes:
+      - ./:/app
+    networks:
+      - bot_network
+
+networks:
+  bot_network:
+    driver: bridge
