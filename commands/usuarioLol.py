@@ -24,8 +24,9 @@ class UsuarioLol(commands.Cog):
     await interaction.response.defer()
 
     apiLol = lolService()
-    userPuuid = apiLol.getAccount(nick, tag).json().get('puuid')
-    dados = apiLol.getSummonerByPuuid(userPuuid)
+    account = apiLol.getAccount(nick, tag)
+    dados = apiLol.getSummonerByPuuid(account.json().get('puuid'))
+
     if dados.status_code == 200:
       dados = dados.json()
       userId = dados.get('id')
@@ -37,17 +38,18 @@ class UsuarioLol(commands.Cog):
         elif ranked.get('queueType') == rankedFlexName:
           rankedDadosFlex = ranked
 
-      soloDuoStats = f"**{rankedDadosSolo.get('tier')} {rankedDadosSolo.get('rank')}**"
-      flexStats = f"**{rankedDadosFlex.get('tier')} {rankedDadosFlex.get('rank')}**"
-      nomeUsuario = dados.get('name')
+      soloDuoStats = f"{rankedDadosSolo.get('tier')} {rankedDadosSolo.get('rank')}"
+      flexStats = f"{rankedDadosFlex.get('tier')} {rankedDadosFlex.get('rank')}"
+      nomeUsuario = (account.json().get('gameName'), account.json().get('tagLine'))
       idIcon = dados.get('profileIconId')
       urlImage = apiLol.getUrlProfileIcon(idIcon)
 
       # EmbedChanged
       embed_message.add_field(name="Solo/Duo", value=soloDuoStats)
       embed_message.add_field(name="Flex", value=flexStats)
+      embed_message.add_field(name="Level", value=dados.get('summonerLevel'))
       embed_message.set_thumbnail(url=urlImage)
-      embed_message.title = f"🔷 │ **{nomeUsuario}**"
+      embed_message.title = f"🔷 │ **{nomeUsuario[0]}#{nomeUsuario[1]}**"
       embed_message.description = f"**Infomações sobre o jogador**"
 
     await interaction.edit_original_response(embed=embed_message)
