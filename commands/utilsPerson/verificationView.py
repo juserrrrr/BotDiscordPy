@@ -17,7 +17,6 @@ class VerificationView(ui.View):
 
     # Responder à interação primeiro
     await interaction.response.defer()
-    print(self.dataPlayer)
 
     self.value = True
     # Verificar se o usuário mudou o ícone
