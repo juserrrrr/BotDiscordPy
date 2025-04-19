@@ -65,9 +65,13 @@ class CriarPerson(commands.Cog):
   ], formate=[
       app_commands.Choice(name="Aleatório", value=0),
       app_commands.Choice(name="Livre", value=1),
+      app_commands.Choice(name="Balanceado", value=2)
   ])
-  async def criarPerson(self, interaction: discord.Interaction, onlineMode: app_commands.Choice[int], formate: app_commands.Choice[int]):
-
+  @app_commands.describe(
+      onlineMode="Escolha se a partida será online (com registro) ou offline",
+      formate="Escolha como os times serão formados"
+  )
+  async def criarPersonalizada(self, interaction: discord.Interaction, onlineMode: app_commands.Choice[int], formate: app_commands.Choice[int]):
     # Variaveis
     confirmedUsers = []
     guildChannelsDict = {
@@ -76,6 +80,17 @@ class CriarPerson(commands.Cog):
     channelNameBlue = 'LADO [ |🔵| ]'
     channelNameRed = 'LADO [ |🔴| ]'
     userCallCommand = interaction.user  # Usuario que chamou o comando
+
+    if formate.value == 2:
+      await interaction.response.send_message(
+          embed=discord.Embed(
+              description="O modo balanceado ainda não está pronto. Por favor, escolha outro formato.",
+              color=interaction.guild.me.color
+          ),
+          ephemeral=True,
+          delete_after=5
+      )
+      return
 
     # Verificar se o servidor possui os canais essenciais para o funcionamento da fila.
     if not all(channel in guildChannelsDict.keys() for channel in [channelNameWaiting, channelNameBlue, channelNameRed]):
