@@ -1,8 +1,7 @@
-
 from discord import app_commands
 from discord.ext import commands
 from .utilsPerson.viewInterfaces import *
-from .utilsPerson.inputInterfaces import *
+from .utilsPerson.leagueVerification import *
 from .utilsPerson.utilsFunc import *
 
 

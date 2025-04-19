@@ -1,7 +1,7 @@
 import discord
 from discord import ui
 from .utilsFunc import *
-from .inputInterfaces import *
+from .leagueVerification import *
 from services.timbasService import timbasService
 from discord import app_commands
 
@@ -22,7 +22,7 @@ class BtnJoinCustomMatch(ui.Button):
     responseUser = timbasApi.getUserByDiscordId(user.id)
     if responseUser is not None:
       if not checkUserIsRegistered(responseUser):
-        modal = ModalLeagueName()
+        modal = ModalLeagueVerification()
         await interaction.response.send_modal(modal)
         await modal.wait()
         # Melhorar isso aqui depois.

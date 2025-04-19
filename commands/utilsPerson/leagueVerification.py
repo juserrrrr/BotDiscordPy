@@ -24,7 +24,7 @@ class ModalLeagueVerification(BaseModal, title="Verificação de conta do League
 
   async def getRandomIconId(self, currentIconId: int) -> int:
     # Lista de ícones disponíveis (você pode ajustar conforme necessário)
-    availableIcons = list(range(1, 30))  # Exemplo: ícones de 1 a 29
+    availableIcons = list(range(1, 5))  # Exemplo: ícones de 1 a 29
     if currentIconId in availableIcons:
       availableIcons.remove(currentIconId)
     return random.choice(availableIcons)
@@ -44,7 +44,8 @@ class ModalLeagueVerification(BaseModal, title="Verificação de conta do League
       return await interaction.delete_original_response()
     else:
       # Verificar o ícone atual do usuário
-      currentProfileIcon = await leagueService.getSummonerByPuuid(dataPlayer.get('puuid'))
+      currentProfileIcon = leagueService.getSummonerByPuuid(
+          dataPlayer.get('puuid'))
       currentIconId = currentProfileIcon.json().get('profileIconId')
 
       # Escolher um ícone aleatório diferente do atual
@@ -55,18 +56,18 @@ class ModalLeagueVerification(BaseModal, title="Verificação de conta do League
       await interaction.edit_original_response(
           content="",
           embed=discord.Embed(
-              title=f"**{dataPlayer.get('name')}**, é você?",
+              title=f"**{dataPlayer.get('name', 'Jogador')}**, é você?",
               description=f"**Para confirmar que esta conta é sua, por favor:**\n1. Mude seu ícone de perfil para o ícone abaixo\n2. Clique no botão 'Verificar' após mudar o ícone",
               color=0x00FF00
           ).add_field(
               name="Solo/Duo",
-              value=f"**{dataPlayer.get('tierSolo')} {dataPlayer.get('rankSolo')}**"
+              value=f"**{dataPlayer.get('tierSolo', 'Unranked')} {dataPlayer.get('rankSolo', '')}**"
           ).add_field(
               name="Flex",
-              value=f"**{dataPlayer.get('tierFlex')} {dataPlayer.get('rankFlex')}**"
+              value=f"**{dataPlayer.get('tierFlex', 'Unranked')} {dataPlayer.get('rankFlex', '')}**"
           ).add_field(
               name="Level",
-              value=f"**{dataPlayer.get('level')}**"
+              value=f"**{dataPlayer.get('level', '0')}**"
           ).set_thumbnail(
               url=verificationIconUrl
           ),
@@ -76,7 +77,8 @@ class ModalLeagueVerification(BaseModal, title="Verificação de conta do League
       await viewVerification.wait()
       if viewVerification.value:
         # Verificar se o usuário mudou o ícone
-        currentProfileIcon = await leagueService.getSummonerByPuuid(dataPlayer.get('puuid'))
+        currentProfileIcon = leagueService.getSummonerByPuuid(
+            dataPlayer.get('puuid'))
         if currentProfileIcon.json().get('profileIconId') == verificationIconId:
           userCreated = await createUserOnTimbas(interaction.user, dataPlayer)
           replyMessage = 'Usuário registrado com sucesso.'

@@ -86,7 +86,7 @@ def checkUserLeagueExists(response):
   return response.status_code == 200
 
 
-def getDataPlayerLeague(dataSummoner, dataRank):
+def getDataPlayerLeague(dataSummoner, dataAccount,dataRank):
 
   rankedSoloName = 'RANKED_SOLO_5x5'
   rankedFlexName = 'RANKED_FLEX_SR'
@@ -101,7 +101,7 @@ def getDataPlayerLeague(dataSummoner, dataRank):
       rankedDadosFlex = ranked
 
   return {
-      'name': dataSummoner.get('name'),
+      'name': dataAccount.get('gameName'),
       'profileIconId': dataSummoner.get('profileIconId'),
       'level': dataSummoner.get('summonerLevel'),
       'tierSolo': (rankedDadosSolo or {}).get('tier', ''),
@@ -119,5 +119,5 @@ def checkAndGetDataPlayerLeague(lolService, userName):
         responseAccount.json().get('puuid'))
     responseRank = lolService.getRankedStats(
         responseSummoner.json().get('id'))
-    return getDataPlayerLeague(responseSummoner.json(), responseRank.json())
+    return getDataPlayerLeague(responseSummoner.json(), responseAccount.json(), responseRank.json())
   return None
