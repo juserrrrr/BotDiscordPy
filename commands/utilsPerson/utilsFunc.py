@@ -68,7 +68,7 @@ def checkUserIsRegistered(response):
 
 
 def checkUserIsLeagueId(data):
-  fieldNameLeagueId = 'leagueId'
+  fieldNameLeagueId = 'leaguePuuid'
   return fieldNameLeagueId in data
 
 
@@ -76,8 +76,8 @@ async def createUserOnTimbas(user: discord.User, userLeague):
   timbas = timbasService()
   response = timbas.createPlayer({
       'name': userLeague.get('name'),
-      'discordId': user.id,
-      'leagueId': userLeague.get('id'),
+      'discordId': str(user.id),
+      'leaguePuuid': str(userLeague.get('puuid')),
   })
   return response
 

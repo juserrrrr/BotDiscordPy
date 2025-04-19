@@ -17,6 +17,7 @@ class VerificationView(ui.View):
 
     # Responder à interação primeiro
     await interaction.response.defer()
+    print(self.dataPlayer)
 
     self.value = True
     # Verificar se o usuário mudou o ícone
@@ -24,8 +25,6 @@ class VerificationView(ui.View):
         self.dataPlayer.get('puuid'))
     if currentProfileIcon.json().get('profileIconId') == self.verificationIconId:
       userCreated = await createUserOnTimbas(interaction.user, self.dataPlayer)
-      print(userCreated.status_code)
-      print(userCreated.json())
       if userCreated.status_code != 201:
         self.replyMessage = 'Erro ao registrar usuário. Tente novamente mais tarde.'
         self.value = False
