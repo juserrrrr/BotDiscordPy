@@ -18,6 +18,7 @@ class CriarPerson(commands.Cog):
     )
     embedMessage.set_footer(
         text="⏳ Aguardando jogadores..." if len(confirmed) < 10 else ("⏳ Aguardando sorteio..." if formate.value == 0 else "⏳ Aguardando início da partida..."))
+    embedMessage.set_image(url="attachment://timbasQueue.png")
     return embedMessage
 
   def embedMessageTeam(self, blueUsers, redUsers, onlineMode, formate, started=False, finished=False):
@@ -35,6 +36,7 @@ class CriarPerson(commands.Cog):
     else:
       embedMessage.set_footer(text="⏳ Aguardando início da partida!")
 
+    embedMessage.set_image(url="attachment://timbasQueue.png")
     return embedMessage
 
   def embedMessageWinner(self, winnerTeam, blueUsers, redUsers):

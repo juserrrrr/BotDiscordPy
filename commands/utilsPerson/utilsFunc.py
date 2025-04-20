@@ -15,7 +15,7 @@ def generateTextUsers(usersPersonList: list):
 
 
 def generateTextUsersLeague(usersPersonList: list, formate, onlineMode):
-  # 55 Carecteres do emebed
+  # 45 Carecteres do emebed
   half = 5
   blueTeam = usersPersonList[:half]
   redTeam = usersPersonList[half:]
@@ -23,22 +23,23 @@ def generateTextUsersLeague(usersPersonList: list, formate, onlineMode):
   onlineModeString = f"Modo: {'Online' if onlineMode.value == 1 else 'Offline'}"
   mapName = "[League of Legends] - Summoner's rift"
   endString = ""
-  endString += f"{'--------------------------':<26}{'-*-':^3}{'--------------------------':>26}\n"
-  endString += f"{'':<13}{'Partida personalizada ⚔️':^27}{'':>13}\n"
-  endString += f"{'':<8} {mapName:^39} {'':>8}\n"
-  endString += f"{formateString:<23}{'':^9}{onlineModeString:>23}\n"
-  endString += f"{'TimeAzul':<23}{'< EQP >':^9}{'TimeVermelho':>23}\n"
-  endString += f"{'':<23}{'00     00':^9}{'':>23}\n"
-  endString += f"{'':<23}{'00:00':^9}{'':>23}\n"
+  endString += f"{'   -----':<21}{'-*-':^3}{'-----   ':>21}\n"
+  endString += f"{'':<9}{'Partida personalizada ⚔️':^27}{'':>9}\n"
+  endString += f"{'':<3} {mapName:^39} {'':>3}\n"
+  endString += f"{formateString:<20}{'':^5}{onlineModeString:>20}\n"
+  endString += f"{'TimeAzul':<18}{'< EQP >':^9}{'TimeVermelho':>18}\n"
+  endString += f"{'':<18}{'00     00':^9}{'':>18}\n"
+  endString += f"{'':<18}{'00:00':^9}{'':>18}\n"
 
   for i in range(half):
     # 25 por lado
-    blueString = f"{blueTeam[i].name[:11]:<12}{'000':>3}{'00/00/00':>9}" if len(
-        blueTeam) > i else f"{'Vazio':<24}"
-    redString = f"{'00/00/00':<9}{'000':<3}{redTeam[i].name[:11]:>12}" if len(
-        redTeam) > i else f"{'Vazio':>24}"
+    blueString = f"{blueTeam[i].name[:6]:<7}{'000':>3}{'00/00/00':>9}" if len(
+        blueTeam) > i else f"{'Vazio':<19}"
+    redString = f"{'00/00/00':<9}{'000':<3}{redTeam[i].name[:6]:>7}" if len(
+        redTeam) > i else f"{'Vazio':>19}"
     endString += f"{blueString}{'<00K>':^7}{redString}\n"
-  return endString if len(endString) > 0 else "Nenhum jogador confirmado."
+  endString += f"{'':<5}{'(No momento apenas visualização)':^35}{'':>5}\n"
+  return endString
 
 
 def drawTeam(confirmedPlayers):

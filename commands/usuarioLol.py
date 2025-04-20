@@ -40,7 +40,8 @@ class UsuarioLol(commands.Cog):
 
       soloDuoStats = f"{rankedDadosSolo.get('tier')} {rankedDadosSolo.get('rank')}"
       flexStats = f"{rankedDadosFlex.get('tier')} {rankedDadosFlex.get('rank')}"
-      nomeUsuario = (account.json().get('gameName'), account.json().get('tagLine'))
+      nomeUsuario = (account.json().get('gameName'),
+                     account.json().get('tagLine'))
       idIcon = dados.get('profileIconId')
       urlImage = apiLol.getUrlProfileIcon(idIcon)
 
