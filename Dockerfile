@@ -1,4 +1,3 @@
-# Use uma imagem base oficial do Python
 FROM python:3.13-slim
 
 # Defina o diretório de trabalho no contêiner
