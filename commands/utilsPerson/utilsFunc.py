@@ -38,7 +38,7 @@ def generateTextUsersLeague(usersPersonList: list, formate, onlineMode):
     redString = f"{'00/00/00':<9}{'000':<3}{redTeam[i].name[:6]:>7}" if len(
         redTeam) > i else f"{'Vazio':>19}"
     endString += f"{blueString}{'<00K>':^7}{redString}\n"
-  endString += f"{'':<5}{'(No momento apenas visualização)':^35}{'':>5}\n"
+  endString += f"{'':<5}{'(No momento, apenas visualização)':^35}{'':>5}\n"
   return endString
 
 
