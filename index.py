@@ -29,7 +29,7 @@ async def main():
   await loadCommands()
 
   token = os.getenv(
-      "TOKEN_BOT_TEST") if env_type == "DEVELOPMENT" else os.getenv("TOKEN_BOT_PROD")
+      "TOKEN_BOT_TEST") if env_type == "DEVELOPMENT" else os.getenv("TOKEN_BOT")
   if not token:
     raise ValueError(f"Token não encontrado para o ambiente {env_type}")
 
