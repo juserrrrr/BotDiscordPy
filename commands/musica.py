@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Suprime mensagens de erro desnecessárias do yt-dlp no console
-yt_dlp.utils.bug_reports_message = lambda: ''
+yt_dlp.utils.bug_reports_message = lambda *args, **kwargs: ''
 
 # --- Configurações ---
 
