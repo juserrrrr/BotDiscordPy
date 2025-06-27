@@ -1,5 +1,5 @@
 discord.py
-asyncio
 python-dotenv
 requests
-dotenv
+yt-dlp
+PyNaCl
