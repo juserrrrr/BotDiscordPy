@@ -1,6 +1,3 @@
-Este comando é responsável por criar e gerenciar partidas personalizadas de League of Legends.
-Ele lida com a criação de canais de voz, gerenciamento de jogadores e o ciclo de vida da partida.
-
 import discord
 from discord import app_commands
 from discord.ext import commands

@@ -1,7 +1,3 @@
-
-Este arquivo contém funções auxiliares para o bot, incluindo manipulação de texto,
-interações com a API e lógica de partidas personalizadas.
-
 import discord
 from random import randint
 from typing import List, Tuple
