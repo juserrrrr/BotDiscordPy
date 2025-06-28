@@ -1,135 +1,108 @@
+Este comando é responsável por criar e gerenciar partidas personalizadas de League of Legends.
+Ele lida com a criação de canais de voz, gerenciamento de jogadores e o ciclo de vida da partida.
+
+import discord
 from discord import app_commands
 from discord.ext import commands
-from .utilsPerson.viewInterfaces import *
-from .utilsPerson.leagueVerification import *
-from .utilsPerson.utilsFunc import *
+import asyncio
 
+from .utilsPerson.ui import CustomMatchView, ConfirmChannelCreationView
+from .utilsPerson.helpers import generate_league_embed_text
 
 class CriarPerson(commands.Cog):
-  def __init__(self, client: discord.Client):
-    self.client = client
-    # Função para gerar a mensagem embed dos jogadores confirmados
+    def __init__(self, client: commands.Bot):
+        self.client = client
 
-  def generateEmbedConfirmed(self, confirmed: list, onlineMode: app_commands.Choice[int], formate: app_commands.Choice[int]):
-    stringConfirmed = generateTextUsersLeague(confirmed, formate, onlineMode)
-    embedMessage = discord.Embed(
-        description=f"\n```{stringConfirmed}```",
-        color=0xFF0004,
+    async def manage_voice_channels(self, guild: discord.Guild):
+        """Verifica e cria os canais de voz necessários para a partida."""
+        required_channels = {"| 🕘 | AGUARDANDO", "LADO [ |🔵| ]", "LADO [ |🔴| ]"}
+        existing_channels = {channel.name for channel in guild.voice_channels}
+        missing_channels = required_channels - existing_channels
+
+        if not missing_channels:
+            return True, {name: discord.utils.get(guild.voice_channels, name=name) for name in required_channels}
+
+        # Se canais estiverem faltando, pede permissão para criar
+        view = ConfirmChannelCreationView()
+        interaction = self.client.get_last_interaction() # Assumindo que a interação está disponível
+        if not interaction:
+            return False, None
+
+        await interaction.response.send_message(
+            "Canais de voz para a partida não encontrados. Deseja criá-los?",
+            view=view,
+            ephemeral=True
+        )
+        await view.wait()
+
+        if view.result:
+            category = await guild.create_category("🆚 Personalizada")
+            created_channels = {}
+            for name in required_channels:
+                channel = await guild.create_voice_channel(name, category=category)
+                created_channels[name] = channel
+            return True, created_channels
+        else:
+            await interaction.edit_original_response(content="Criação de canais cancelada.", view=None)
+            return False, None
+
+    @app_commands.command(name='criarperson', description="Cria uma partida personalizada de League of Legends.")
+    @app_commands.guild_only()
+    @app_commands.rename(online_mode="modo", match_format="formato")
+    @app_commands.choices(
+        online_mode=[
+            app_commands.Choice(name="Online", value=1),
+            app_commands.Choice(name="Offline", value=0)
+        ],
+        match_format=[
+            app_commands.Choice(name="Aleatório", value=0),
+            app_commands.Choice(name="Livre", value=1),
+            app_commands.Choice(name="Balanceado", value=2)
+        ]
     )
-    embedMessage.set_footer(
-        text="⏳ Aguardando jogadores..." if len(confirmed) < 10 else ("⏳ Aguardando sorteio..." if formate.value == 0 else "⏳ Aguardando início da partida..."))
-    embedMessage.set_image(url="attachment://timbasQueue.png")
-    return embedMessage
-
-  def embedMessageTeam(self, blueUsers, redUsers, onlineMode, formate, started=False, finished=False):
-    stringConfirmed = generateTextUsersLeague(
-        blueUsers + redUsers, formate, onlineMode)
-    embedMessage = discord.Embed(
-        description=f"\n```{stringConfirmed}```",
-        color=0xFF0004,
+    @app_commands.describe(
+        online_mode="Define se a partida terá registro de estatísticas (Online) ou não (Offline).",
+        match_format="Define como os times serão formados."
     )
+    async def criar_personalizada(self, interaction: discord.Interaction, online_mode: app_commands.Choice[int], match_format: app_commands.Choice[int]):
+        """Ponto de entrada para o comando de criação de partida."""
+        if match_format.value == 2: # Balanceado
+            await interaction.response.send_message(
+                "O modo de jogo Balanceado ainda está em desenvolvimento.",
+                ephemeral=True
+            )
+            return
 
-    if finished:
-      embedMessage.set_footer(text="✅ Partida finalizada!")
-    elif started:
-      embedMessage.set_footer(text="🔴 Partida em andamento!")
-    else:
-      embedMessage.set_footer(text="⏳ Aguardando início da partida!")
+        success, channels = await self.manage_voice_channels(interaction.guild)
+        if not success:
+            return
 
-    embedMessage.set_image(url="attachment://timbasQueue.png")
-    return embedMessage
+        waiting_channel = channels["| 🕘 | AGUARDANDO"]
+        blue_channel = channels["LADO [ |🔵| ]"]
+        red_channel = channels["LADO [ |🔴| ]"]
 
-  def embedMessageWinner(self, winnerTeam, blueUsers, redUsers):
-    iconWinner = '🏆'
-    iconLoser = '❌'
-    stateBlue = iconWinner if winnerTeam == 'blue' else iconLoser
-    stateRed = iconWinner if winnerTeam == 'red' else iconLoser
-    embed_message = discord.Embed(
-        title="**Partida personalizada ⚔️ **",
-        description="**League of Legends**",
-        color=0xFF0004,
-    )
-    embed_message.set_footer(
-        text="=✅Finalizada")
-    embed_message.add_field(
-        name=f"**Time Azul 🔵[{stateBlue}]**", value=f"{blueUsers}", inline=True)
-    embed_message.add_field(
-        name=f"**Time Vermelho 🔴[{stateRed}]**", value=f"{redUsers}", inline=True)
-    embed_message.set_image(url='https://i.imgur.com/kNWEtds.png')
-    return embed_message
+        initial_embed_text = generate_league_embed_text([], match_format.name, online_mode.name)
+        embed = discord.Embed(
+            description=f"```\n{initial_embed_text}```",
+            color=discord.Color.blue()
+        )
+        embed.set_footer(text="Aguardando jogadores...")
+        embed.set_image(url="attachment://timbasQueue.png")
 
-  @app_commands.command(name='criarperson', description="Cria uma mensagem para que os usuarios possam entrar no sorteio da partida personalizada.")
-  @app_commands.guild_only()
-  @app_commands.rename(onlineMode="modo", formate="formato")
-  @app_commands.choices(onlineMode=[
-      app_commands.Choice(name="Online", value=1),
-      app_commands.Choice(name="Offline", value=0)
-  ], formate=[
-      app_commands.Choice(name="Aleatório", value=0),
-      app_commands.Choice(name="Livre", value=1),
-      app_commands.Choice(name="Balanceado", value=2)
-  ])
-  @app_commands.describe(
-      onlineMode="Escolha se a partida será online (com registro) ou offline",
-      formate="Escolha como os times serão formados"
-  )
-  async def criarPersonalizada(self, interaction: discord.Interaction, onlineMode: app_commands.Choice[int], formate: app_commands.Choice[int]):
-    # Variaveis
-    confirmedUsers = []
-    guildChannelsDict = {
-        channel.name: channel for channel in interaction.guild.channels}
-    channelNameWaiting = '| 🕘 | AGUARDANDO'
-    channelNameBlue = 'LADO [ |🔵| ]'
-    channelNameRed = 'LADO [ |🔴| ]'
-    userCallCommand = interaction.user  # Usuario que chamou o comando
+        view = CustomMatchView(
+            creator=interaction.user,
+            waiting_channel=waiting_channel,
+            blue_channel=blue_channel,
+            red_channel=red_channel,
+            online_mode=online_mode,
+            match_format=match_format
+        )
 
-    if formate.value == 2:
-      await interaction.response.send_message(
-          embed=discord.Embed(
-              description="O modo balanceado ainda não está pronto. Por favor, escolha outro formato.",
-              color=interaction.guild.me.color
-          ),
-          ephemeral=True,
-          delete_after=5
-      )
-      return
-
-    # Verificar se o servidor possui os canais essenciais para o funcionamento da fila.
-    if not all(channel in guildChannelsDict.keys() for channel in [channelNameWaiting, channelNameBlue, channelNameRed]):
-      # Criar a view para confirmar a criação dos canais.
-      viewCreateChannels = ViewActionConfirm(
-          channels=[channelNameWaiting, channelNameBlue, channelNameRed])
-      # Enviar a mensagem para o usuario permitir a criação dos canais.
-      await interaction.response.send_message(content="Percebi que o servidor não possui os canais de voz essenciais para o funcionamento da fila. Será que você poderia me permitir criar esses canais?", ephemeral=True, view=viewCreateChannels)
-      try:
-        responseCreate = await asyncio.wait_for(viewCreateChannels.future, timeout=60)
-        if responseCreate == '0':
-          return
-      except asyncio.TimeoutError:
-        # Limite de tempo excedido, evento cancelado.
-        return await interaction.delete_original_response()
-
-    # 1. Pegar os canais de voz essenciais para o funcionamento da fila.
-    guildChannelsDict = {
-        channel.name: channel for channel in interaction.guild.channels}
-
-    channelWaiting = guildChannelsDict[channelNameWaiting]
-    channelBlue = guildChannelsDict[channelNameBlue]
-    channelRed = guildChannelsDict[channelNameRed]
-    # 2. Fazer os views para configuração da personalizada.
-
-    # 3. Criar a personalizada.
-    embedMessageCreate = self.generateEmbedConfirmed(
-        confirmedUsers, onlineMode, formate)
-    viewBtns = ViewBtnInterface(userCallCommand, channelWaiting, channelBlue,
-                                channelRed, confirmedUsers, self.generateEmbedConfirmed, self.embedMessageTeam, onlineMode, formate)
-    # Verificar se ja foi respondida a mensagem, se não, responde, se sim manda um follwup
-    if interaction.response.is_done():
-      await interaction.delete_original_response()
-      await interaction.followup.send(embed=embedMessageCreate, view=viewBtns, file=discord.File('./images/timbasQueue.png'))
-    else:
-      await interaction.response.send_message(embed=embedMessageCreate, view=viewBtns, file=discord.File('./images/timbasQueue.png'))
-
+        await interaction.response.send_message(
+            embed=embed,
+            view=view,
+            file=discord.File('./images/timbasQueue.png')
+        )
 
 async def setup(client):
-  await client.add_cog(CriarPerson(client))
+    await client.add_cog(CriarPerson(client))
