@@ -13,8 +13,9 @@ class CriarPerson(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
 
-    async def manage_voice_channels(self, guild: discord.Guild):
+    async def manage_voice_channels(self, interaction: discord.Interaction):
         """Verifica e cria os canais de voz necessários para a partida."""
+        guild = interaction.guild
         required_channels = {"| 🕘 | AGUARDANDO", "LADO [ |🔵| ]", "LADO [ |🔴| ]"}
         existing_channels = {channel.name for channel in guild.voice_channels}
         missing_channels = required_channels - existing_channels
@@ -22,12 +23,7 @@ class CriarPerson(commands.Cog):
         if not missing_channels:
             return True, {name: discord.utils.get(guild.voice_channels, name=name) for name in required_channels}
 
-        # Se canais estiverem faltando, pede permissão para criar
         view = ConfirmChannelCreationView()
-        interaction = self.client.get_last_interaction() # Assumindo que a interação está disponível
-        if not interaction:
-            return False, None
-
         await interaction.response.send_message(
             "Canais de voz para a partida não encontrados. Deseja criá-los?",
             view=view,
@@ -36,7 +32,11 @@ class CriarPerson(commands.Cog):
         await view.wait()
 
         if view.result:
-            category = await guild.create_category("🆚 Personalizada")
+            await interaction.edit_original_response(content="Criando canais...", view=None)
+            category = discord.utils.get(guild.categories, name="🆚 Personalizada")
+            if not category:
+                category = await guild.create_category("🆚 Personalizada")
+            
             created_channels = {}
             for name in required_channels:
                 channel = await guild.create_voice_channel(name, category=category)
@@ -73,7 +73,7 @@ class CriarPerson(commands.Cog):
             )
             return
 
-        success, channels = await self.manage_voice_channels(interaction.guild)
+        success, channels = await self.manage_voice_channels(interaction)
         if not success:
             return
 
