@@ -50,10 +50,12 @@ class CustomMatchView(ui.View):
 
     async def update_embed(self, interaction: discord.Interaction, started=False, finished=False):
         """Atualiza o embed da partida."""
-        if not started and not finished:
-            text = generate_league_embed_text(self.confirmed_players, self.match_format.name, self.online_mode.name)
+        if self.blue_team and self.red_team:
+            players = self.blue_team + self.red_team
         else:
-            text = generate_league_embed_text(self.blue_team + self.red_team, self.match_format.name, self.online_mode.name)
+            players = self.confirmed_players
+        
+        text = generate_league_embed_text(players, self.match_format.name, self.online_mode.name)
 
         embed = discord.Embed(description=f"""```\n{text}```""", color=discord.Color.blue())
         
