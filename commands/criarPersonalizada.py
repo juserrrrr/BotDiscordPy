@@ -124,8 +124,7 @@ class CriarPerson(commands.Cog):
         )
         
         embed = discord.Embed(
-            description=f"```
-{initial_embed_text}```",
+            description=f"```{initial_embed_text}```",
             color=discord.Color.blue()
         )
         embed.set_footer(text="Aguardando jogadores...")
