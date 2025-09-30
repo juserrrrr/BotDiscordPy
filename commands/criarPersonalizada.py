@@ -105,7 +105,7 @@ class CriarPerson(commands.Cog):
         )
 
         if debug:
-            mock_players = [MockUser(name=f"Player{i}", id=i) for i in range(1, 11)]
+            mock_players = [MockUser(name=f"Ply{i}", id=i) for i in range(1, 11)]
             view.confirmed_players = mock_players
             view.update_buttons()
 

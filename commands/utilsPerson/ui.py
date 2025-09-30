@@ -1,4 +1,3 @@
-
 """
 Este arquivo define as views e botões do Discord para a criação de partidas personalizadas,
 centralizando a lógica de interface do usuário em um único local.
@@ -26,6 +25,7 @@ class CustomMatchView(ui.View):
         self.confirmed_players: List[discord.User] = []
         self.blue_team: List[discord.User] = []
         self.red_team: List[discord.User] = []
+        self.started = False
 
         self.update_buttons()
 
@@ -64,7 +64,7 @@ class CustomMatchView(ui.View):
             online_mode=self.online_mode.name
         )
 
-        embed = discord.Embed(description=f"""```\n{text}```""", color=discord.Color.blue())
+        embed = discord.Embed(description=f"""\n{text}""", color=discord.Color.blue())
         
         footer_text = "Aguardando jogadores..."
         if finished:
@@ -84,7 +84,7 @@ class CustomMatchView(ui.View):
 
 class JoinButton(ui.Button):
     def __init__(self, parent_view: CustomMatchView):
-        super().__init__(label="Entrar", style=discord.ButtonStyle.green, emoji="✅")
+        super().__init__(label="Entrar", style=discord.ButtonStyle.green, emoji="✅", disabled=parent_view.started)
         self.parent_view = parent_view
 
     async def callback(self, interaction: discord.Interaction):
@@ -109,7 +109,7 @@ class JoinButton(ui.Button):
 
 class LeaveButton(ui.Button):
     def __init__(self, parent_view: CustomMatchView):
-        super().__init__(label="Sair", style=discord.ButtonStyle.red, emoji="🚪")
+        super().__init__(label="Sair", style=discord.ButtonStyle.red, emoji="🚪", disabled=parent_view.started)
         self.parent_view = parent_view
 
     async def callback(self, interaction: discord.Interaction):
@@ -128,7 +128,7 @@ class PlayerCountButton(ui.Button):
 class DrawButton(ui.Button):
     """Botão para sortear os times."""
     def __init__(self, parent_view: CustomMatchView):
-        super().__init__(label="Sortear", style=discord.ButtonStyle.primary, emoji="🎲", disabled=len(parent_view.confirmed_players) < 10)
+        super().__init__(label="Sortear", style=discord.ButtonStyle.primary, emoji="🎲", disabled=len(parent_view.confirmed_players) < 10 or parent_view.started)
         self.parent_view = parent_view
 
     async def callback(self, interaction: discord.Interaction):
@@ -141,7 +141,7 @@ class DrawButton(ui.Button):
 
 class SwitchSideButton(ui.Button):
     def __init__(self, parent_view: CustomMatchView):
-        super().__init__(label="Trocar Lado", style=discord.ButtonStyle.primary, emoji="🔄", disabled=len(parent_view.confirmed_players) != 10)
+        super().__init__(label="Trocar Lado", style=discord.ButtonStyle.primary, emoji="🔄", disabled=len(parent_view.confirmed_players) != 10 or parent_view.started)
         self.parent_view = parent_view
 
     async def callback(self, interaction: discord.Interaction):
@@ -151,7 +151,7 @@ class SwitchSideButton(ui.Button):
 class StartButton(ui.Button):
     def __init__(self, parent_view: CustomMatchView):
         is_ready = len(parent_view.confirmed_players) == 10
-        super().__init__(label="Iniciar", style=discord.ButtonStyle.success, emoji="▶", disabled=not is_ready)
+        super().__init__(label="Iniciar", style=discord.ButtonStyle.success, emoji="▶", disabled=not is_ready or parent_view.started)
         self.parent_view = parent_view
 
     async def callback(self, interaction: discord.Interaction):
@@ -169,12 +169,13 @@ class StartButton(ui.Button):
         await move_team_to_channel(self.parent_view.blue_team, self.parent_view.blue_channel)
         await move_team_to_channel(self.parent_view.red_team, self.parent_view.red_channel)
         
+        self.parent_view.started = True
         self.parent_view.update_buttons()
         await self.parent_view.update_embed(interaction, started=True)
 
 class FinishButton(ui.Button):
     def __init__(self, parent_view: CustomMatchView):
-        super().__init__(label="Finalizar", style=discord.ButtonStyle.danger, emoji="🏁", disabled=True) # Habilitar quando o jogo começar
+        super().__init__(label="Finalizar", style=discord.ButtonStyle.danger, emoji="🏁", disabled=not parent_view.started)
         self.parent_view = parent_view
 
     async def callback(self, interaction: discord.Interaction):
@@ -204,4 +205,3 @@ class ConfirmChannelCreationView(ui.View):
         self.result = False
         self.stop()
         await interaction.response.defer()
-
