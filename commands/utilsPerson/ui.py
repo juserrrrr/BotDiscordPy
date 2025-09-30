@@ -48,7 +48,7 @@ class CustomMatchView(ui.View):
         self.add_item(StartButton(self))
         self.add_item(FinishButton(self))
 
-    async def update_embed(self, interaction: discord.Interaction, started=False, finished=False):
+    async def update_embed(self, interaction: discord.Interaction, started=False, finished=False, deferred: bool = False):
         """Atualiza o embed da partida."""
         if not self.blue_team and not self.red_team:
             blue_display = self.confirmed_players[:5]
@@ -77,7 +77,10 @@ class CustomMatchView(ui.View):
         embed.set_footer(text=footer_text)
         embed.set_image(url="attachment://timbasQueue.png")
         
-        await interaction.response.edit_message(embed=embed, view=self)
+        if deferred:
+            await interaction.edit_original_response(embed=embed, view=self)
+        else:
+            await interaction.response.edit_message(embed=embed, view=self)
 
 
 # --- Botões --- #
@@ -155,11 +158,14 @@ class StartButton(ui.Button):
         self.parent_view = parent_view
 
     async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer()
         if interaction.user != self.parent_view.creator:
-            return await interaction.response.send_message("Apenas o criador pode iniciar.", ephemeral=True)
+            await interaction.followup.send("Apenas o criador pode iniciar.", ephemeral=True)
+            return
 
         if self.parent_view.match_format.value == 0 and not (self.parent_view.blue_team and self.parent_view.red_team):
-            return await interaction.response.send_message("Sorteie os times primeiro.", ephemeral=True)
+            await interaction.followup.send("Sorteie os times primeiro.", ephemeral=True)
+            return
         
         if self.parent_view.match_format.value == 1: # Modo Livre
             half = len(self.parent_view.confirmed_players) // 2
@@ -171,7 +177,7 @@ class StartButton(ui.Button):
         
         self.parent_view.started = True
         self.parent_view.update_buttons()
-        await self.parent_view.update_embed(interaction, started=True)
+        await self.parent_view.update_embed(interaction, started=True, deferred=True)
 
 class FinishButton(ui.Button):
     def __init__(self, parent_view: CustomMatchView):
