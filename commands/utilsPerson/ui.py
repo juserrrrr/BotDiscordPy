@@ -50,12 +50,19 @@ class CustomMatchView(ui.View):
 
     async def update_embed(self, interaction: discord.Interaction, started=False, finished=False):
         """Atualiza o embed da partida."""
-        if self.blue_team and self.red_team:
-            players = self.blue_team + self.red_team
+        if not self.blue_team and not self.red_team:
+            blue_display = self.confirmed_players[:5]
+            red_display = self.confirmed_players[5:]
         else:
-            players = self.confirmed_players
-        
-        text = generate_league_embed_text(players, self.match_format.name, self.online_mode.name)
+            blue_display = self.blue_team
+            red_display = self.red_team
+
+        text = generate_league_embed_text(
+            blue_team=blue_display,
+            red_team=red_display,
+            match_format=self.match_format.name,
+            online_mode=self.online_mode.name
+        )
 
         embed = discord.Embed(description=f"""```\n{text}```""", color=discord.Color.blue())
         
@@ -119,6 +126,7 @@ class PlayerCountButton(ui.Button):
         super().__init__(label=f"{len(players)}/10", style=discord.ButtonStyle.grey, disabled=True)
 
 class DrawButton(ui.Button):
+    """Botão para sortear os times."""
     def __init__(self, parent_view: CustomMatchView):
         super().__init__(label="Sortear", style=discord.ButtonStyle.primary, emoji="🎲", disabled=len(parent_view.confirmed_players) < 10)
         self.parent_view = parent_view

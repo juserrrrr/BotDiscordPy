@@ -6,11 +6,9 @@ from services.timbasService import timbasService
 from services.lolService import lolService
 
 
-def generate_league_embed_text(users: List[discord.User], match_format: str, online_mode: str) -> str:
+def generate_league_embed_text(blue_team: List[discord.User], red_team: List[discord.User], match_format: str, online_mode: str) -> str:
     """Gera o texto formatado para o embed da partida de League of Legends."""
     half = 5
-    blue_team = users[:half]
-    red_team = users[half:]
 
     format_str = f"Formato: {match_format}"
     online_mode_str = f"Modo: {online_mode}"

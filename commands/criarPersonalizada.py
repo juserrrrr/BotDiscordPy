@@ -6,6 +6,19 @@ import asyncio
 from .utilsPerson.ui import CustomMatchView, ConfirmChannelCreationView
 from .utilsPerson.helpers import generate_league_embed_text
 
+class MockVoice:
+    def __init__(self):
+        self.channel = "mock_channel"
+
+class MockUser:
+    def __init__(self, name, id):
+        self.name = name
+        self.id = id
+        self.voice = MockVoice()
+
+    async def move_to(self, channel):
+        pass
+
 class CriarPerson(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
@@ -59,10 +72,14 @@ class CriarPerson(commands.Cog):
     )
     @app_commands.describe(
         online_mode="Define se a partida terá registro de estatísticas (Online) ou não (Offline).",
-        match_format="Define como os times serão formados."
+        match_format="Define como os times serão formados.",
+        debug="Ativa o modo de debug com 10 jogadores falsos (apenas para o dono do servidor)."
     )
-    async def criar_personalizada(self, interaction: discord.Interaction, online_mode: app_commands.Choice[int], match_format: app_commands.Choice[int]):
+    async def criar_personalizada(self, interaction: discord.Interaction, online_mode: app_commands.Choice[int], match_format: app_commands.Choice[int], debug: bool = False):
         """Ponto de entrada para o comando de criação de partida."""
+        if debug and interaction.user.id != interaction.guild.owner_id:
+            return await interaction.response.send_message("Você não tem permissão para usar o modo de debug.", ephemeral=True)
+
         if match_format.value == 2: # Balanceado
             await interaction.response.send_message(
                 "O modo de jogo Balanceado ainda está em desenvolvimento.",
@@ -78,14 +95,6 @@ class CriarPerson(commands.Cog):
         blue_channel = channels["LADO [ |🔵| ]"]
         red_channel = channels["LADO [ |🔴| ]"]
 
-        initial_embed_text = generate_league_embed_text([], match_format.name, online_mode.name)
-        embed = discord.Embed(
-            description=f"```\n{initial_embed_text}```",
-            color=discord.Color.blue()
-        )
-        embed.set_footer(text="Aguardando jogadores...")
-        embed.set_image(url="attachment://timbasQueue.png")
-
         view = CustomMatchView(
             creator=interaction.user,
             waiting_channel=waiting_channel,
@@ -94,6 +103,32 @@ class CriarPerson(commands.Cog):
             online_mode=online_mode,
             match_format=match_format
         )
+
+        if debug:
+            mock_players = [MockUser(name=f"Player{i}", id=i) for i in range(1, 11)]
+            view.confirmed_players = mock_players
+            view.update_buttons()
+
+        if not view.blue_team and not view.red_team:
+            blue_display = view.confirmed_players[:5]
+            red_display = view.confirmed_players[5:]
+        else:
+            blue_display = view.blue_team
+            red_display = view.red_team
+        
+        initial_embed_text = generate_league_embed_text(
+            blue_team=blue_display,
+            red_team=red_display,
+            match_format=match_format.name,
+            online_mode=online_mode.name
+        )
+        
+        embed = discord.Embed(
+            description=f"```\n{initial_embed_text}```",
+            color=discord.Color.blue()
+        )
+        embed.set_footer(text="Aguardando jogadores...")
+        embed.set_image(url="attachment://timbasQueue.png")
 
         await interaction.response.send_message(
             embed=embed,
