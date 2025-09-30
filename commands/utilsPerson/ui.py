@@ -64,7 +64,8 @@ class CustomMatchView(ui.View):
             online_mode=self.online_mode.name
         )
 
-        embed = discord.Embed(description=f"""\n{text}""", color=discord.Color.blue())
+        embed = discord.Embed(description=f"```
+{text}```", color=discord.Color.blue())
         
         footer_text = "Aguardando jogadores..."
         if finished:
