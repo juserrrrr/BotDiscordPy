@@ -35,8 +35,6 @@ class Ready(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        logger.info("Limpando e sincronizando comandos...")
-        await self.client.tree.clear_commands(guild=None)
         await self.client.tree.sync()
         logger.info(f"Entrei como o bot {self.client.user.name} e estou presente em {len(self.client.guilds)} {'servidor.' if len(self.client.guilds) == 1 else 'servidores.'}")
 
