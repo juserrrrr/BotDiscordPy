@@ -308,7 +308,8 @@ class WinningTeamSelect(ui.Select):
             
             # Atualiza a mensagem original
             original_interaction = self.parent_view.match_view.message_interaction
-            final_embed = original_interaction.message.embeds[0]
+            original_message = await original_interaction.original_response()
+            final_embed = original_message.embeds[0]
             final_embed.description = f"```{new_embed_text}```"
             final_embed.set_footer(text=f"Partida finalizada! Vencedor: Time {winner_label}")
             await original_interaction.edit_original_response(embed=final_embed, view=None)

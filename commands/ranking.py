@@ -37,12 +37,16 @@ class Ranking(commands.Cog):
             response = timbas.getRanking(server_id)
 
             if response.status_code != 200:
-                return await interaction.followup.send(f"Não foi possível obter o ranking. Erro: {response.text}", ephemeral=True, delete_after=5)
+                msg = await interaction.followup.send(f"Não foi possível obter o ranking. Erro: {response.text}", ephemeral=True)
+                await msg.delete(delay=5)
+                return
 
             ranking_data = response.json()
         
         if not ranking_data:
-            return await interaction.followup.send("Ainda não há jogadores no ranking deste servidor.", ephemeral=True, delete_after=5)
+            msg = await interaction.followup.send("Ainda não há jogadores no ranking deste servidor.", ephemeral=True)
+            await msg.delete(delay=5)
+            return
 
         embed = discord.Embed(
             title=f"🏆 Ranking de {interaction.guild.name}",
