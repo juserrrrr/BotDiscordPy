@@ -14,7 +14,7 @@ from services.timbasService import timbasService
 class CustomMatchView(ui.View):
     """View principal para gerenciar uma partida personalizada."""
 
-    def __init__(self, creator: discord.User, waiting_channel: discord.VoiceChannel, blue_channel: discord.VoiceChannel, red_channel: discord.VoiceChannel, online_mode: app_commands.Choice[int], match_format: app_commands.Choice[int]):
+    def __init__(self, creator: discord.User, waiting_channel: discord.VoiceChannel, blue_channel: discord.VoiceChannel, red_channel: discord.VoiceChannel, online_mode: app_commands.Choice[int], match_format: app_commands.Choice[int], debug: bool = False):
         super().__init__(timeout=None)  # A view persiste
         self.creator = creator
         self.waiting_channel = waiting_channel
@@ -22,10 +22,16 @@ class CustomMatchView(ui.View):
         self.red_channel = red_channel
         self.online_mode = online_mode
         self.match_format = match_format
+        self.debug = debug
         self.confirmed_players: List[discord.User] = []
         self.blue_team: List[discord.User] = []
         self.red_team: List[discord.User] = []
         self.started = False
+        self.match_id = None
+        self.blue_team_id = None
+        self.red_team_id = None
+        self.message_interaction = None
+        self.finishing = False
 
         self.update_buttons()
 
@@ -178,6 +184,39 @@ class StartButton(ui.Button):
             self.parent_view.blue_team = self.parent_view.confirmed_players[:half]
             self.parent_view.red_team = self.parent_view.confirmed_players[half:]
 
+        # Criar a partida na API Timbas ou simular em modo debug
+        if self.parent_view.debug:
+            # Simula a criação de IDs em modo debug
+            self.parent_view.match_id = 9999
+            self.parent_view.blue_team_id = 101
+            self.parent_view.red_team_id = 102
+        elif self.parent_view.online_mode.value == 1:
+            timbas = timbasService()
+            payload = {
+                "ServerDiscordId": str(interaction.guild.id),
+                "teamBlue": {
+                    "players": [{ "discordId": str(p.id) } for p in self.parent_view.blue_team]
+                },
+                "teamRed": {
+                    "players": [{ "discordId": str(p.id) } for p in self.parent_view.red_team]
+                }
+            }
+            response = timbas.createMatch(payload)
+            if response.status_code == 201:
+                match_data = response.json()
+                self.parent_view.match_id = match_data.get('id')
+                if 'teamBlue' in match_data and 'id' in match_data['teamBlue']:
+                    self.parent_view.blue_team_id = match_data['teamBlue']['id']
+                if 'teamRed' in match_data and 'id' in match_data['teamRed']:
+                    self.parent_view.red_team_id = match_data['teamRed']['id']
+
+                if not self.parent_view.match_id or not self.parent_view.blue_team_id or not self.parent_view.red_team_id:
+                    await interaction.followup.send("Erro: A resposta da API não continha os IDs necessários.", ephemeral=True, delete_after=5)
+                    return
+            else:
+                await interaction.followup.send(f"Erro ao criar a partida na API: {response.text}", ephemeral=True, delete_after=5)
+                return
+
         await move_team_to_channel(self.parent_view.blue_team, self.parent_view.blue_channel)
         await move_team_to_channel(self.parent_view.red_team, self.parent_view.red_channel)
         
@@ -193,11 +232,107 @@ class FinishButton(ui.Button):
     async def callback(self, interaction: discord.Interaction):
         if interaction.user != self.parent_view.creator:
             return await interaction.response.send_message("Apenas o criador pode finalizar.", ephemeral=True, delete_after=5)
+
+        if self.parent_view.online_mode.value == 0: # Offline
+            await self.parent_view.update_embed(interaction, finished=True)
+            self.parent_view.stop()
+            return
+
+        if self.parent_view.finishing:
+            return await interaction.response.send_message("A seleção de vencedor já está em andamento.", ephemeral=True, delete_after=5)
+
+        if not self.parent_view.match_id or not self.parent_view.blue_team_id or not self.parent_view.red_team_id:
+            return await interaction.response.send_message("IDs da partida ou dos times não encontrados. Não é possível finalizar.", ephemeral=True, delete_after=5)
+
+        # Desabilita o botão e atualiza a view principal
+        self.disabled = True
+        self.parent_view.finishing = True
+        await self.parent_view.message_interaction.edit_original_response(view=self.parent_view)
+
+        # Envia a view de finalização como resposta efêmera à interação atual
+        finish_view = FinishMatchView(self.parent_view)
+        await interaction.response.send_message("Quem venceu a partida?", view=finish_view, ephemeral=True)
+        finish_view.message = await interaction.original_response()
+
+
+class WinningTeamSelect(ui.Select):
+    def __init__(self, parent_view: 'FinishMatchView'):
+        self.parent_view = parent_view
+        options = [
+            discord.SelectOption(label="Time Azul", value=str(parent_view.match_view.blue_team_id), emoji="🔵"),
+            discord.SelectOption(label="Time Vermelho", value=str(parent_view.match_view.red_team_id), emoji="🔴"),
+        ]
+        super().__init__(placeholder="Selecione o time vencedor...", options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user != self.parent_view.match_view.creator:
+            return await interaction.response.send_message("Apenas o criador da partida pode selecionar o vencedor.", ephemeral=True, delete_after=5)
+
+        winner_team_id = int(self.values[0])
         
-        # Lógica de finalização (ex: mover todos para um canal, registrar resultados)
-        self.parent_view.update_buttons()
-        await self.parent_view.update_embed(interaction, finished=True)
-        self.parent_view.stop() # Termina a view
+        response_ok = False
+        if self.parent_view.match_view.debug:
+            response_ok = True
+        else:
+            timbas = timbasService()
+            payload = {"winnerId": winner_team_id}
+            response = timbas.updateMatchWinner(self.parent_view.match_view.match_id, payload)
+            if response.status_code == 200:
+                response_ok = True
+            else:
+                await interaction.response.send_message(f"Erro ao finalizar a partida: {response.text}", ephemeral=True, delete_after=5)
+                # Re-habilita o botão em caso de erro
+                self.parent_view.match_view.finishing = False
+                for item in self.parent_view.match_view.children:
+                    if isinstance(item, FinishButton):
+                        item.disabled = False
+                        break
+                await self.parent_view.match_view.message_interaction.edit_original_response(view=self.parent_view.match_view)
+
+        # Deleta a mensagem de seleção
+        await interaction.message.delete()
+
+        if response_ok:
+            winner_label = "Azul" if winner_team_id == self.parent_view.match_view.blue_team_id else "Vermelho"
+            
+            # Atualiza a mensagem original
+            original_interaction = self.parent_view.match_view.message_interaction
+            final_embed = original_interaction.message.embeds[0]
+            final_embed.set_footer(text=f"Partida finalizada! Vencedor: Time {winner_label}")
+            await original_interaction.edit_original_response(embed=final_embed, view=None)
+
+            self.parent_view.match_view.stop()
+
+
+class FinishMatchView(ui.View):
+    def __init__(self, match_view: CustomMatchView):
+        super().__init__(timeout=180) # 3 minutos para decidir
+        self.match_view = match_view
+        self.message: discord.WebhookMessage = None
+        self.add_item(WinningTeamSelect(self))
+
+    async def on_timeout(self):
+        if self.match_view.is_finished():
+            return
+
+        # Re-habilita o botão de finalizar na view principal
+        self.match_view.finishing = False
+        for item in self.match_view.children:
+            if isinstance(item, FinishButton):
+                item.disabled = False
+                break
+        
+        try:
+            await self.match_view.message_interaction.edit_original_response(view=self.match_view)
+        except discord.errors.NotFound:
+            pass # A interação original pode ter expirado.
+
+        if self.message:
+            await self.message.delete()
+
+
+
+
 
 
 class RejoinButton(ui.Button):
