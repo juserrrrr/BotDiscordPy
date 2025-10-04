@@ -46,14 +46,18 @@ class Ranking(commands.Cog):
             msg = await interaction.followup.send("Ainda não há jogadores no ranking deste servidor.", ephemeral=True)
             await msg.delete(delay=5)
             return
+        
+        total_width = 45
+        line1 = '----- TOP 10 -----'
+        line2 = 'Melhores do Servidor'
 
         embed = discord.Embed(
             title="🏆 Ranking de Jogadores 🏆",
             color=discord.Color.gold()
         )
         header_lines = [
-            f"{'   -----':<21}{'TOP 10':^9}{'-----   ':>21}",
-            f"{'':<9}{'Melhores do Servidor':^27}{'':>9}",
+            f"{line1:^{total_width}}",
+            f"{line2:^{total_width}}",
             "",
             f"{'Pos.':<8}{'Jogador':<15}{'V/D':<8}{'WR':<8}{'Total':<6}",
             "---------------------------------------------"
@@ -76,17 +80,17 @@ class Ranking(commands.Cog):
                 case 3: prefix = "🥉"
                 case _: prefix = "  "
 
-            aligned_rank = rank_str.rjust(3) 
+            aligned_rank = rank_str.rjust(3)
 
-            first_column_content = f"{prefix}{aligned_rank}"
-
-            # Trunca o nome do jogador se for muito longo
+            padding = " " * 3
+            first_column = f"{prefix}{aligned_rank}{padding}"
+            
             display_name = player_name
             if len(display_name) > 15:
                 display_name = display_name[:12] + "..."
 
             ranking_list_lines.append(
-                f"{first_column_content:<8}{display_name:<15}{f'{wins}/{losses}':<8}{f'{win_rate:.1f}%':<8}{total_games:<6}"
+                f"{first_column}{display_name:<15}{f'{wins}/{losses}':<8}{f'{win_rate:.1f}%':<8}{total_games:<6}"
             )
 
         embed.description = "```\n" + "\n".join(header_lines + ranking_list_lines) + "\n```"
