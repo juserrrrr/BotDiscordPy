@@ -59,7 +59,8 @@ class Ranking(commands.Cog):
             f"{line1:^{total_width}}",
             f"{line2:^{total_width}}",
             "",
-            f"{'Pos.':<8}{'Jogador':<15}{'V/D':<8}{'WR':<8}{'Total':<6}",
+            # Ajuste a largura da coluna 'Pos.' para 5
+            f"{'Pos.':<5}{'Jogador':<15}{'V/D':<8}{'Total':<6}{'WR':<8}",
             "---------------------------------------------"
         ]
 
@@ -74,8 +75,8 @@ class Ranking(commands.Cog):
 
             rank_str = f"{rank}."
             
-            # Lógica de alinhamento simplificada para a posição
-            pos_column = rank_str.rjust(3)
+            # rjust(3) garante que " 1." e "10." tenham 3 caracteres de largura
+            pos_column = rank_str.rjust(3) 
 
             medal = ""
             match rank:
@@ -87,10 +88,10 @@ class Ranking(commands.Cog):
             if len(display_name) > 15:
                 display_name = display_name[:12] + "..."
 
-            # Monta a linha principal com alinhamento perfeito
-            main_line = f"{pos_column:<8}{display_name:<15}{f'{wins}/{losses}':<8}{f'{win_rate:.1f}%':<8}{total_games:<6}"
+            # Ajuste a largura da coluna 'pos_column' para 5.
+            # pos_column (3 caracteres) + 2 espaços = 5 caracteres no total.
+            main_line = f"{pos_column:<5}{display_name:<15}{f'{wins}/{losses}':<8}{total_games:<6}{f'{win_rate:.1f}%':<8}"
             
-            # Adiciona a medalha no final, sem quebrar o alinhamento
             full_line = f"{main_line}{medal}"
             
             ranking_list_lines.append(full_line)
