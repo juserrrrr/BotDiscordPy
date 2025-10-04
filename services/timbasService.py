@@ -40,6 +40,6 @@ class timbasService():
     return response
 
   def getRanking(self, serverId: str):
-    url = f"{self.url}/ranking/{serverId}"
+    url = f"{self.url}/leaderboard/{serverId}"
     response = self.session.get(url, headers=self.header)
     return response

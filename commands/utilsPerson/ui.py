@@ -306,12 +306,16 @@ class WinningTeamSelect(ui.Select):
                 winner=winner_side
             )
             
-            # Atualiza a mensagem original
-            original_interaction = self.parent_view.match_view.message_interaction
-            original_message = await original_interaction.original_response()
-            final_embed = original_message.embeds[0]
-            final_embed.description = f"```{new_embed_text}```"
+            # Cria uma embed totalmente nova para evitar problemas de referência
+            final_embed = discord.Embed(
+                description=f"```{new_embed_text}```",
+                color=discord.Color.blue() # ou a cor original
+            )
             final_embed.set_footer(text=f"Partida finalizada! Vencedor: Time {winner_label}")
+            final_embed.set_image(url="attachment://timbasQueue.png")
+
+            # Edita a mensagem original com a nova embed
+            original_interaction = self.parent_view.match_view.message_interaction
             await original_interaction.edit_original_response(embed=final_embed, view=None)
 
             self.parent_view.match_view.stop()
