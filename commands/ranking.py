@@ -52,14 +52,11 @@ class Ranking(commands.Cog):
             title="🏆 Ranking de Jogadores 🏆",
             color=discord.Color.gold()
         )
-
-        # Mimic the header lines from generate_league_embed_text
-        # Total width of the code block is around 45 characters.
         header_lines = [
             f"{'   -----':<21}{'TOP 10':^9}{'-----   ':>21}", # 45 chars
             f"{'':<9}{'Melhores do Servidor':^27}{'':>9}", # 45 chars
             "", # Empty line for spacing
-            f"{'Pos.':<4}{'Jogador':<15}{'V/D':<8}{'WR':<8}{'Total':<10}", # Column headers (4+15+8+8+10 = 45)
+            f"{'Pos.':<8}{'Jogador':<15}{'V/D':<8}{'WR':<8}{'Total':<6}", # Column headers (8+15+8+8+6 = 45)
             "---------------------------------------------" # 45 chars
         ]
 
@@ -79,13 +76,20 @@ class Ranking(commands.Cog):
                 case 2: emoji_prefix = "🥈"
                 case 3: emoji_prefix = "🥉"
             
+            # Calculate visual width for the first column (Pos.)
+            # Emojis are 2 visual characters wide, but len() is 1.
+            # Target visual width for the first column is 8.
+            visual_width_of_rank_part = len(rank_str) + (2 if emoji_prefix else 0)
+            padding_needed = 8 - visual_width_of_rank_part
+            first_column_content = f"{emoji_prefix}{rank_str}{' ' * padding_needed}"
+
             # Truncate player name if too long
             display_name = player_name
             if len(display_name) > 15:
                 display_name = display_name[:12] + "..." # 15 chars total
 
             ranking_list_lines.append(
-                f"{emoji_prefix}{rank_str:<4}{display_name:<15}{f'{wins}/{losses}':<8}{f'{win_rate:.1f}%':<8}{total_games:<10}"
+                f"{first_column_content}{display_name:<15}{f'{wins}/{losses}':<8}{f'{win_rate:.1f}%':<8}{total_games:<6}"
             )
 
         embed.description = "```\n" + "\n".join(header_lines + ranking_list_lines) + "\n```"
