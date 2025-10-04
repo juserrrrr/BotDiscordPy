@@ -265,6 +265,8 @@ class WinningTeamSelect(ui.Select):
         super().__init__(placeholder="Selecione o time vencedor...", options=options)
 
     async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+
         if interaction.user != self.parent_view.match_view.creator:
             return await interaction.response.send_message("Apenas o criador da partida pode selecionar o vencedor.", ephemeral=True, delete_after=5)
 
