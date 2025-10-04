@@ -92,14 +92,12 @@ class LeagueVerificationModal(ui.Modal, title="Verificação de Conta do LoL"):
 
         await view.wait()
         
-        result_message = "Ocorreu um erro inesperado." # Mensagem padrão
-        if view.result:
-            result_message = view.result.get('message', result_message)
-
         result_embed = discord.Embed(
             description=result_message,
             color=discord.Color.green() if view.result and view.result.get('success') else discord.Color.red()
         )
         await interaction.edit_original_response(content=None, embed=result_embed, view=None)
-        await asyncio.sleep(5)
-        await interaction.delete_original_response()
+        
+        # Apaga a mensagem de resultado após 5 segundos
+        final_message = await interaction.original_response()
+        await final_message.delete(delay=5)
