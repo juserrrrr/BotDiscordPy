@@ -70,26 +70,24 @@ class Ranking(commands.Cog):
             total_games = player_stats.get('totalGames', 0)
 
             rank_str = f"{rank}."
-            emoji_prefix = ""
+            prefix = ""
             match rank:
-                case 1: emoji_prefix = "🥇"
-                case 2: emoji_prefix = "🥈"
-                case 3: emoji_prefix = "🥉"
-            
-            # Calculate visual width for the first column (Pos.)
-            # Emojis are 2 visual characters wide, but len() is 1.
-            # Target visual width for the first column is 8.
-            visual_width_of_rank_part = len(rank_str) + (2 if emoji_prefix else 0)
-            padding_needed = 8 - visual_width_of_rank_part
-            first_column_content = f"{emoji_prefix}{rank_str}{' ' * padding_needed}"
+                case 1: prefix = f"🥇"
+                case 2: prefix = f"🥈"
+                case 3: prefix = f"🥉"
+                case _: prefix = "  " 
 
-            # Truncate player name if too long
+            # Combina o prefixo (emoji ou espaços) com o número do rank
+            first_column_content = f"{prefix} {rank_str}"
+
+            # Trunca o nome do jogador se for muito longo
             display_name = player_name
             if len(display_name) > 15:
-                display_name = display_name[:12] + "..." # 15 chars total
+                display_name = display_name[:12] + "..."
 
             ranking_list_lines.append(
-                f"{first_column_content}{display_name:<15}{f'{wins}/{losses}':<8}{f'{win_rate:.1f}%':<8}{total_games:<6}"
+                # Alinha a primeira coluna à esquerda em um campo de 8 caracteres
+                f"{first_column_content:<8}{display_name:<15}{f'{wins}/{losses}':<8}{f'{win_rate:.1f}%':<8}{total_games:<6}"
             )
 
         embed.description = "```\n" + "\n".join(header_lines + ranking_list_lines) + "\n```"
