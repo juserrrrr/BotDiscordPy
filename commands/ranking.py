@@ -18,8 +18,7 @@ class Ranking(commands.Cog):
             if interaction.user.id != interaction.guild.owner_id:
                 return await interaction.followup.send("Você não tem permissão para usar o modo de debug.", ephemeral=True, delete_after=5)
             
-            # Gerar 10 jogadores mocados
-            from random import randint, uniform
+            from random import randint
             ranking_data = []
             for i in range(1, 11):
                 wins = randint(10, 50)
@@ -53,11 +52,11 @@ class Ranking(commands.Cog):
             color=discord.Color.gold()
         )
         header_lines = [
-            f"{'   -----':<21}{'TOP 10':^9}{'-----   ':>21}", # 45 chars
-            f"{'':<9}{'Melhores do Servidor':^27}{'':>9}", # 45 chars
-            "", # Empty line for spacing
-            f"{'Pos.':<8}{'Jogador':<15}{'V/D':<8}{'WR':<8}{'Total':<6}", # Column headers (8+15+8+8+6 = 45)
-            "---------------------------------------------" # 45 chars
+            f"{'   -----':<21}{'TOP 10':^9}{'-----   ':>21}",
+            f"{'':<9}{'Melhores do Servidor':^27}{'':>9}",
+            "",
+            f"{'Pos.':<8}{'Jogador':<15}{'V/D':<8}{'WR':<8}{'Total':<6}",
+            "---------------------------------------------"
         ]
 
         ranking_list_lines = []
@@ -72,13 +71,14 @@ class Ranking(commands.Cog):
             rank_str = f"{rank}."
             prefix = ""
             match rank:
-                case 1: prefix = f"🥇"
-                case 2: prefix = f"🥈"
-                case 3: prefix = f"🥉"
-                case _: prefix = "  " 
+                case 1: prefix = "🥇"
+                case 2: prefix = "🥈"
+                case 3: prefix = "🥉"
+                case _: prefix = "  "
 
-            # Combina o prefixo (emoji ou espaços) com o número do rank
-            first_column_content = f"{prefix} {rank_str}"
+            aligned_rank = rank_str.rjust(3) 
+
+            first_column_content = f"{prefix}{aligned_rank}"
 
             # Trunca o nome do jogador se for muito longo
             display_name = player_name
@@ -86,7 +86,6 @@ class Ranking(commands.Cog):
                 display_name = display_name[:12] + "..."
 
             ranking_list_lines.append(
-                # Alinha a primeira coluna à esquerda em um campo de 8 caracteres
                 f"{first_column_content:<8}{display_name:<15}{f'{wins}/{losses}':<8}{f'{win_rate:.1f}%':<8}{total_games:<6}"
             )
 
