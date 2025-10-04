@@ -6,7 +6,7 @@ from services.timbasService import timbasService
 from services.lolService import lolService
 
 
-def generate_league_embed_text(blue_team: List[discord.User], red_team: List[discord.User], match_format: str, online_mode: str) -> str:
+def generate_league_embed_text(blue_team: List[discord.User], red_team: List[discord.User], match_format: str, online_mode: str, winner: str = None) -> str:
     """Gera o texto formatado para o embed da partida de League of Legends."""
     half = 5
 
@@ -14,12 +14,15 @@ def generate_league_embed_text(blue_team: List[discord.User], red_team: List[dis
     online_mode_str = f"Modo: {online_mode}"
     map_name = "[League of Legends] - Summoner's Rift"
 
+    blue_team_header = "TimeAzul 🏆" if winner == "BLUE" else "TimeAzul"
+    red_team_header = "🏆 TimeVermelho" if winner == "RED" else "TimeVermelho"
+
     lines = [
         f"{'   -----':<21}{'-*-':^3}{'-----   ':>21}",
         f"{'':<9}{'Partida personalizada ⚔️':^27}{'':>9}",
         f"{'':<3} {map_name:^39} {'':>3}",
         f"{format_str:<20}{'':^5}{online_mode_str:>20}",
-        f"{'TimeAzul':<18}{'< EQP >':^9}{'TimeVermelho':>18}",
+        f"{blue_team_header:<18}{ '< EQP >':^9}{red_team_header:>18}",
         f"{'':<18}{'00     00':^9}{'':>18}",
         f"{'':<18}{'00:00':^9}{'':>18}",
     ]

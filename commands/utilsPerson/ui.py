@@ -265,10 +265,11 @@ class WinningTeamSelect(ui.Select):
         super().__init__(placeholder="Selecione o time vencedor...", options=options)
 
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer()
+        # Deferir a resposta para dar tempo ao bot de processar
+        await interaction.response.defer(ephemeral=True)
 
         if interaction.user != self.parent_view.match_view.creator:
-            return await interaction.response.send_message("Apenas o criador da partida pode selecionar o vencedor.", ephemeral=True, delete_after=5)
+            return await interaction.followup.send("Apenas o criador da partida pode selecionar o vencedor.", ephemeral=True)
 
         winner_team_id = int(self.values[0])
         
@@ -282,7 +283,8 @@ class WinningTeamSelect(ui.Select):
             if response.status_code == 200:
                 response_ok = True
             else:
-                await interaction.response.send_message(f"Erro ao finalizar a partida: {response.text}", ephemeral=True, delete_after=5)
+                # Usa followup para enviar o erro
+                await interaction.followup.send(f"Erro ao finalizar a partida: {response.text}", ephemeral=True)
                 # Re-habilita o botão em caso de erro
                 self.parent_view.match_view.finishing = False
                 for item in self.parent_view.match_view.children:
@@ -291,19 +293,30 @@ class WinningTeamSelect(ui.Select):
                         break
                 await self.parent_view.match_view.message_interaction.edit_original_response(view=self.parent_view.match_view)
 
-        # Deleta a mensagem de seleção
-        await interaction.message.delete()
-
         if response_ok:
-            winner_label = "Azul" if winner_team_id == self.parent_view.match_view.blue_team_id else "Vermelho"
+            winner_side = 'BLUE' if winner_team_id == self.parent_view.match_view.blue_team_id else 'RED'
+            winner_label = "Azul" if winner_side == 'BLUE' else "Vermelho"
+
+            # Gera o novo corpo da embed com o troféu
+            new_embed_text = generate_league_embed_text(
+                blue_team=self.parent_view.match_view.blue_team,
+                red_team=self.parent_view.match_view.red_team,
+                match_format=self.parent_view.match_view.match_format.name,
+                online_mode=self.parent_view.match_view.online_mode.name,
+                winner=winner_side
+            )
             
             # Atualiza a mensagem original
             original_interaction = self.parent_view.match_view.message_interaction
             final_embed = original_interaction.message.embeds[0]
+            final_embed.description = f"```{new_embed_text}```"
             final_embed.set_footer(text=f"Partida finalizada! Vencedor: Time {winner_label}")
             await original_interaction.edit_original_response(embed=final_embed, view=None)
 
             self.parent_view.match_view.stop()
+        
+        # Deleta a mensagem de seleção (que é a resposta original a esta interação)
+        await interaction.delete_original_response()
 
 
 class FinishMatchView(ui.View):
