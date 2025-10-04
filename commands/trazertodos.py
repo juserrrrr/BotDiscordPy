@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
+import asyncio
 
 
 class TrazerTodos(commands.Cog):
@@ -29,14 +30,16 @@ class TrazerTodos(commands.Cog):
       await interaction.response.send_message(embed=discord.Embed(description="Não há usuários para mover!", color=discord.Color.red()), ephemeral=True, delete_after=5)
       return
 
-    await interaction.response.send_message(embed=discord.Embed(description="Iniciando o processo de mover todos os membros...", color=interaction.guild.me.color), ephemeral=True)
+    await interaction.response.send_message(embed=discord.Embed(description="Iniciando o processo de mover todos os membros...", color=interaction.guild.me.color), ephemeral=True, delete_after=5)
 
     for channel in interaction.guild.voice_channels:
       if not channel == authorChannel and len(channel.members) > 0 or channel == afkChannel:
         for member in channel.members:
           await member.move_to(authorChannel)
 
-    await interaction.edit_original_response(embed=discord.Embed(description="Comando executado com sucesso!", color=interaction.guild.me.color), delete_after=5)
+    await interaction.edit_original_response(embed=discord.Embed(description="Comando executado com sucesso!", color=interaction.guild.me.color))
+    await asyncio.sleep(5)
+    await interaction.delete_original_response()
 
 
 async def setup(client: commands.Bot):

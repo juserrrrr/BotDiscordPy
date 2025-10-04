@@ -31,22 +31,25 @@ class CustomMatchView(ui.View):
 
     def update_buttons(self):
         """Atualiza o estado dos botões com base no estado da partida."""
-        # Limpa os botões antigos para redesenhar
         self.clear_items()
 
-        # Botões de Ação
-        self.add_item(JoinButton(self))
-        self.add_item(LeaveButton(self))
-        self.add_item(PlayerCountButton(self.confirmed_players))
+        if not self.started:
+            # --- State: Before match starts ---
+            self.add_item(JoinButton(self))
+            self.add_item(LeaveButton(self))
+            self.add_item(PlayerCountButton(self.confirmed_players))
 
-        # Botões de Controle (dependem do formato e estado)
-        if self.match_format.value == 0:  # Aleatório
-            self.add_item(DrawButton(self))
-        elif self.match_format.value == 1:  # Livre
-            self.add_item(SwitchSideButton(self))
+            if self.match_format.value == 0:  # Aleatório
+                self.add_item(DrawButton(self))
+            elif self.match_format.value == 1:  # Livre
+                self.add_item(SwitchSideButton(self))
 
-        self.add_item(StartButton(self))
-        self.add_item(FinishButton(self))
+            self.add_item(StartButton(self))
+            self.add_item(FinishButton(self))
+        else:
+            # --- State: After match starts ---
+            self.add_item(RejoinButton(self))
+            self.add_item(FinishButton(self))
 
     async def update_embed(self, interaction: discord.Interaction, started=False, finished=False, deferred: bool = False):
         """Atualiza o embed da partida."""
@@ -87,16 +90,19 @@ class CustomMatchView(ui.View):
 
 class JoinButton(ui.Button):
     def __init__(self, parent_view: CustomMatchView):
-        super().__init__(label="Entrar", style=discord.ButtonStyle.green, emoji="✅", disabled=parent_view.started)
+        super().__init__(label="Entrar", style=discord.ButtonStyle.green, emoji="✅", disabled=parent_view.started or len(parent_view.confirmed_players) >= 10)
         self.parent_view = parent_view
 
     async def callback(self, interaction: discord.Interaction):
         user = interaction.user
         if not user.voice:
-            return await interaction.response.send_message("Você precisa estar em um canal de voz.", ephemeral=True)
+            return await interaction.response.send_message("Você precisa estar em um canal de voz.", ephemeral=True, delete_after=5)
         
         if user in self.parent_view.confirmed_players:
-            return await interaction.response.send_message("Você já está na lista.", ephemeral=True)
+            return await interaction.response.send_message("Você já está na lista.", ephemeral=True, delete_after=5)
+
+        if len(self.parent_view.confirmed_players) >= 10:
+            return await interaction.response.send_message("A partida já está cheia.", ephemeral=True, delete_after=5)
 
         if self.parent_view.online_mode.value == 1:
             timbas = timbasService()
@@ -122,7 +128,7 @@ class LeaveButton(ui.Button):
             self.parent_view.update_buttons()
             await self.parent_view.update_embed(interaction)
         else:
-            await interaction.response.send_message("Você não está na lista.", ephemeral=True)
+            await interaction.response.send_message("Você não está na lista.", ephemeral=True, delete_after=5)
 
 class PlayerCountButton(ui.Button):
     def __init__(self, players: List[discord.User]):
@@ -136,7 +142,7 @@ class DrawButton(ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user != self.parent_view.creator:
-            return await interaction.response.send_message("Apenas o criador pode sortear.", ephemeral=True)
+            return await interaction.response.send_message("Apenas o criador pode sortear.", ephemeral=True, delete_after=5)
 
         self.parent_view.blue_team, self.parent_view.red_team = draw_teams(self.parent_view.confirmed_players)
         self.parent_view.update_buttons()
@@ -149,7 +155,7 @@ class SwitchSideButton(ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         # Implementar a lógica de troca de lado se necessário
-        await interaction.response.send_message("Função ainda não implementada.", ephemeral=True)
+        await interaction.response.send_message("Função ainda não implementada.", ephemeral=True, delete_after=5)
 
 class StartButton(ui.Button):
     def __init__(self, parent_view: CustomMatchView):
@@ -160,11 +166,11 @@ class StartButton(ui.Button):
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
         if interaction.user != self.parent_view.creator:
-            await interaction.followup.send("Apenas o criador pode iniciar.", ephemeral=True)
+            await interaction.followup.send("Apenas o criador pode iniciar.", ephemeral=True, delete_after=5)
             return
 
         if self.parent_view.match_format.value == 0 and not (self.parent_view.blue_team and self.parent_view.red_team):
-            await interaction.followup.send("Sorteie os times primeiro.", ephemeral=True)
+            await interaction.followup.send("Sorteie os times primeiro.", ephemeral=True, delete_after=5)
             return
         
         if self.parent_view.match_format.value == 1: # Modo Livre
@@ -186,12 +192,33 @@ class FinishButton(ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user != self.parent_view.creator:
-            return await interaction.response.send_message("Apenas o criador pode finalizar.", ephemeral=True)
+            return await interaction.response.send_message("Apenas o criador pode finalizar.", ephemeral=True, delete_after=5)
         
         # Lógica de finalização (ex: mover todos para um canal, registrar resultados)
         self.parent_view.update_buttons()
         await self.parent_view.update_embed(interaction, finished=True)
         self.parent_view.stop() # Termina a view
+
+
+class RejoinButton(ui.Button):
+    """Botão para retornar ao canal de voz da equipe."""
+    def __init__(self, parent_view: CustomMatchView):
+        super().__init__(label="Voltar para a Sala", style=discord.ButtonStyle.secondary, emoji="🔄")
+        self.parent_view = parent_view
+
+    async def callback(self, interaction: discord.Interaction):
+        user = interaction.user
+        if not user.voice:
+            return await interaction.response.send_message("Você precisa estar em um canal de voz para ser movido.", ephemeral=True, delete_after=5)
+
+        if user in self.parent_view.blue_team:
+            await user.move_to(self.parent_view.blue_channel)
+            await interaction.response.send_message("Você foi movido para o canal do Time Azul.", ephemeral=True, delete_after=5)
+        elif user in self.parent_view.red_team:
+            await user.move_to(self.parent_view.red_channel)
+            await interaction.response.send_message("Você foi movido para o canal do Time Vermelho.", ephemeral=True, delete_after=5)
+        else:
+            await interaction.response.send_message("Você não faz parte desta partida.", ephemeral=True, delete_after=5)
 
 
 class ConfirmChannelCreationView(ui.View):

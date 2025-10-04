@@ -18,7 +18,7 @@ class SetAvatar(commands.Cog):
     await interaction.response.defer(ephemeral=True)
     img = requests.get(url).content
     await interaction.client.user.edit(avatar=img)
-    message = await interaction.followup.send(embed=discord.Embed(description="Comando executado com sucesso!", color=interaction.guild.me.color), ephemeral=True, wait=True)
+    message = await interaction.followup.send(embed=discord.Embed(description="Comando executado com sucesso!", color=interaction.guild.me.color), ephemeral=True, wait=True, delete_after=5)
     await message.delete(delay=3)
 
 

@@ -22,7 +22,7 @@ class ErrorHandler(commands.Cog):
       message = "Aconteceu um erro interno ao executar o comando, o mesmo já foi registrado."
       await interaction.guild.get_member(352240724693090305).send(f"{error}\n{type(error)}")
 
-    await interaction.response.send_message(embed=discord.Embed(description=message, color=interaction.guild.me.color), ephemeral=True, delete_after=4)
+    await interaction.response.send_message(embed=discord.Embed(description=message, color=interaction.guild.me.color), ephemeral=True, delete_after=5)
 
 
 async def setup(client: commands.Bot):

@@ -10,4 +10,4 @@ class BaseModal(ui.Modal):
 
     await ownerBot.send(f'MODAL ERRO\n{error}\n{type(error)}')
 
-    return await interaction.response.send_message(embed=discord.Embed(description="Aconteceu um erro interno ao executar a ação, o mesmo já foi registrado.",color=interaction.guild.me.color),ephemeral=True,delete_after=4)
+    return await interaction.response.send_message(embed=discord.Embed(description="Aconteceu um erro interno ao executar a ação, o mesmo já foi registrado.",color=interaction.guild.me.color),ephemeral=True,delete_after=5)

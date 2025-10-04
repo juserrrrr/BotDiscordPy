@@ -61,7 +61,7 @@ class LeagueVerificationModal(ui.Modal, title="Verificação de Conta do LoL"):
     )
 
     async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Buscando sua conta...", ephemeral=True)
+        await interaction.response.send_message("Buscando sua conta...", ephemeral=True, delete_after=5)
 
         player_data = get_league_account_data(self.league_name.value)
         if not player_data:

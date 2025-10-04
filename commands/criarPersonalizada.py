@@ -83,7 +83,8 @@ class CriarPerson(commands.Cog):
         if match_format.value == 2: # Balanceado
             await interaction.response.send_message(
                 "O modo de jogo Balanceado ainda está em desenvolvimento.",
-                ephemeral=True
+                ephemeral=True,
+                delete_after=5
             )
             return
 
