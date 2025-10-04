@@ -73,25 +73,27 @@ class Ranking(commands.Cog):
             total_games = player_stats.get('totalGames', 0)
 
             rank_str = f"{rank}."
-            prefix = ""
-            match rank:
-                case 1: prefix = "🥇"
-                case 2: prefix = "🥈"
-                case 3: prefix = "🥉"
-                case _: prefix = "  "
-
-            aligned_rank = rank_str.rjust(3)
-
-            padding = " " * 3
-            first_column = f"{prefix}{aligned_rank}{padding}"
             
+            # Lógica de alinhamento simplificada para a posição
+            pos_column = rank_str.rjust(3)
+
+            medal = ""
+            match rank:
+                case 1: medal = " 🥇"
+                case 2: medal = " 🥈"
+                case 3: medal = " 🥉"
+
             display_name = player_name
             if len(display_name) > 15:
                 display_name = display_name[:12] + "..."
 
-            ranking_list_lines.append(
-                f"{first_column}{display_name:<15}{f'{wins}/{losses}':<8}{f'{win_rate:.1f}%':<8}{total_games:<6}"
-            )
+            # Monta a linha principal com alinhamento perfeito
+            main_line = f"{pos_column:<8}{display_name:<15}{f'{wins}/{losses}':<8}{f'{win_rate:.1f}%':<8}{total_games:<6}"
+            
+            # Adiciona a medalha no final, sem quebrar o alinhamento
+            full_line = f"{main_line}{medal}"
+            
+            ranking_list_lines.append(full_line)
 
         embed.description = "```\n" + "\n".join(header_lines + ranking_list_lines) + "\n```"
         embed.set_footer(text="Os melhores jogadores do servidor com base nas partidas personalizadas.")
