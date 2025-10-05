@@ -12,7 +12,7 @@ class Ranking(commands.Cog):
     @app_commands.guild_only()
     @app_commands.describe(debug="Ativa o modo de debug para gerar um ranking com 10 jogadores falsos.")
     async def ranking(self, interaction: discord.Interaction, debug: bool = False):
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
 
         if debug:
             if interaction.user.id != interaction.guild.owner_id:

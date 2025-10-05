@@ -118,27 +118,28 @@ class JoinButton(ui.Button):
             if not user_data or not is_user_registered(response):
                 confirm_view = AccountCreationConfirmView()
                 await interaction.response.send_message(
-                    "Para guardar os dados da partida, precisamos criar uma conta para você. Podemos fazer isso?",
+                    "Não encontramos uma conta Timbas vinculada ao seu Discord. Deseja criar uma agora?",
                     view=confirm_view,
                     ephemeral=True
                 )
                 await confirm_view.wait()
 
                 if confirm_view.value is True:
-                    # Create basic user account without league data
                     await create_timbas_player(user, None)
-                    # Re-fetch user data after creation
                     response = timbas.getUserByDiscordId(user.id)
                     user_data = response.json() if response else None
-                    if not user_data: # Should not happen if creation was successful
+                    if not user_data:
                         await interaction.followup.send("Ocorreu um erro ao criar sua conta. Tente novamente.", ephemeral=True)
                         return
                 else:
-                    await interaction.followup.send("Você precisa de uma conta para participar de partidas online.", ephemeral=True)
+                    await interaction.edit_original_response(
+                        content="É necessário ter uma conta Timbas para participar de partidas online.",
+                        view=None, # Remove os botões
+                        delete_after=5
+                    )
                     return
 
-            # Now check for leaguePuuid if online_mode is 1 and user_data exists
-            if self.parent_view.online_mode.value == 1 and user_data and not user_data.get('leaguePuuid'):
+            if user_data and not user_data.get('leaguePuuid'):
                 await interaction.response.send_modal(LeagueVerificationModal())
                 return
 
