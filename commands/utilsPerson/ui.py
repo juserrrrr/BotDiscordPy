@@ -61,7 +61,7 @@ class CustomMatchView(BaseView):
             self.add_item(RejoinButton(self))
             self.add_item(FinishButton(self))
 
-    async def update_embed(self, interaction: discord.Interaction, started=False, finished=False, deferred: bool = False):
+    async def update_embed(self, interaction: discord.Interaction, started=False, finished=False):
         """Atualiza o embed da partida."""
         if not self.blue_team and not self.red_team:
             blue_display = self.confirmed_players[:5]
@@ -90,7 +90,7 @@ class CustomMatchView(BaseView):
         embed.set_footer(text=footer_text)
         embed.set_image(url="attachment://timbasQueue.png")
         
-        if deferred:
+        if interaction.response.is_done():
             await interaction.edit_original_response(embed=embed, view=self)
         else:
             await interaction.response.edit_message(embed=embed, view=self)
@@ -236,7 +236,7 @@ class StartButton(ui.Button):
         
         self.parent_view.started = True
         self.parent_view.update_buttons()
-        await self.parent_view.update_embed(interaction, started=True, deferred=True)
+        await self.parent_view.update_embed(interaction, started=True)
 
 class FinishButton(ui.Button):
     def __init__(self, parent_view: CustomMatchView):
