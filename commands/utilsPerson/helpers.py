@@ -93,7 +93,7 @@ async def create_timbas_player(user: discord.User, league_data: dict = None):
     timbas = timbasService()
     payload = {
         'discordId': str(user.id),
-        'name': user.name, # Adiciona o nome do usuário do Discord
+        'name': user.name, 
     }
     if league_data:
         payload['name'] = league_data.get('name')
