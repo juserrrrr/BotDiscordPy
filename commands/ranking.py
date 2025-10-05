@@ -108,3 +108,6 @@ class Ranking(commands.Cog):
         await interaction.channel.send(embed=embed)
         message = await interaction.followup.send("Comando de ranking executado com sucesso!", ephemeral=True)
         asyncio.create_task(delete_message_after_delay(message))
+
+async def setup(client):
+    await client.add_cog(Ranking(client))
