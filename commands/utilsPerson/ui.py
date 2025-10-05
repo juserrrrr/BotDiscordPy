@@ -4,7 +4,8 @@ centralizando a lógica de interface do usuário em um único local.
 """
 import discord
 from discord import ui, app_commands
-from typing import List, Callable
+from typing import List
+import asyncio
 
 from base.BaseViews import BaseView
 
@@ -399,28 +400,30 @@ class AccountCreationConfirmView(BaseView):
 
     @ui.button(label="Sim, criar conta", style=discord.ButtonStyle.green)
     async def confirm(self, interaction: discord.Interaction, button: ui.Button):
+        # Avisa que vamos responder, mas precisamos de tempo
         await interaction.response.defer(ephemeral=True)
         
         create_response = await create_timbas_player(self.user, None)
 
-
-        await interaction.delete_original_response()
-
         if create_response.status_code != 201:
-
-            await interaction.followup.send(
+            # Envia a mensagem de erro
+            msg = await interaction.followup.send(
                 "❌ Ocorreu um erro ao criar sua conta. Tente novamente.",
-                ephemeral=True,
-                delete_after=5
+                ephemeral=True
             )
             self.result = False
+            await asyncio.sleep(5)
+            await msg.delete()
+
         else:
-            await interaction.followup.send(
+            # Envia a mensagem de sucesso
+            msg = await interaction.followup.send(
                 "✅ Conta criada com sucesso!",
-                ephemeral=True,
-                delete_after=5
+                ephemeral=True
             )
             self.result = True
+            await asyncio.sleep(5)
+            await msg.delete()
 
         self.stop()
 
