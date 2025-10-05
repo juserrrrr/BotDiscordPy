@@ -237,13 +237,8 @@ class StartButton(ui.Button):
             self.parent_view.blue_team = self.parent_view.confirmed_players[:half]
             self.parent_view.red_team = self.parent_view.confirmed_players[half:]
 
-        # Criar a partida na API Timbas ou simular em modo debug
-        if self.parent_view.debug:
-            # Simula a criação de IDs em modo debug
-            self.parent_view.match_id = 9999
-            self.parent_view.blue_team_id = 101
-            self.parent_view.red_team_id = 102
-        elif self.parent_view.online_mode.value == 1:
+        # Criar a partida na API Timbas
+        if self.parent_view.online_mode.value == 1:
             timbas = timbasService()
 
             # Gerar riotMatchId aleatório
