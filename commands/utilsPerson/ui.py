@@ -256,17 +256,12 @@ class StartButton(ui.Button):
                     "players": [{ "discordId": str(p.id) } for p in self.parent_view.red_team]
                 }
             }
-            logging.info(f"API Request Payload: {payload}")
             response = timbas.createMatch(payload)
-            logging.info(f"API Response Status Code: {response.status_code}")
-            logging.info(f"API Response JSON: {response.json()}")
             if response.status_code == 201:
                 match_data = response.json()
                 self.parent_view.match_id = match_data.get('id')
-                if 'teamBlue' in match_data and 'id' in match_data['teamBlue']:
-                    self.parent_view.blue_team_id = match_data['teamBlue']['id']
-                if 'teamRed' in match_data and 'id' in match_data['teamRed']:
-                    self.parent_view.red_team_id = match_data['teamRed']['id']
+                self.parent_view.blue_team_id = match_data.get('teamBlueId')
+                self.parent_view.red_team_id = match_data.get('teamRedId')
 
                 if not self.parent_view.match_id or not self.parent_view.blue_team_id or not self.parent_view.red_team_id:
                     message = await interaction.followup.send("Erro: A resposta da API não continha os IDs necessários.", ephemeral=True)
