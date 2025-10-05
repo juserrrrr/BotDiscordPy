@@ -110,13 +110,22 @@ class JoinButton(ui.Button):
         await interaction.response.defer(ephemeral=True)
 
         if not user.voice:
-            return await interaction.followup.send("Você precisa estar em um canal de voz.", ephemeral=True, delete_after=5)
+            message = await interaction.followup.send("Você precisa estar em um canal de voz.", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
+            return
         
         if user in self.parent_view.confirmed_players:
-            return await interaction.followup.send("Você já está na lista.", ephemeral=True, delete_after=5)
+            message = await interaction.followup.send("Você já está na lista.", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
+            return
 
         if len(self.parent_view.confirmed_players) >= 10:
-            return await interaction.followup.send("A partida já está cheia.", ephemeral=True, delete_after=5)
+            message = await interaction.followup.send("A partida já está cheia.", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
+            return
 
         if self.parent_view.online_mode.value == 1:
             timbas = timbasService()
@@ -153,9 +162,13 @@ class LeaveButton(ui.Button):
             self.parent_view.confirmed_players.remove(user)
             self.parent_view.update_buttons()
             await self.parent_view.update_embed()
-            await interaction.followup.send("Você saiu da lista de jogadores.", ephemeral=True, delete_after=5)
+            message = await interaction.followup.send("Você saiu da lista de jogadores.", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
         else:
-            await interaction.followup.send("Você não está na lista.", ephemeral=True, delete_after=5)
+            message = await interaction.followup.send("Você não está na lista.", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
 
 class PlayerCountButton(ui.Button):
     def __init__(self, players: List[discord.User]):
@@ -170,12 +183,17 @@ class DrawButton(ui.Button):
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         if interaction.user != self.parent_view.creator:
-            return await interaction.followup.send("Apenas o criador pode sortear.", ephemeral=True, delete_after=5)
+            message = await interaction.followup.send("Apenas o criador pode sortear.", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
+            return
 
         self.parent_view.blue_team, self.parent_view.red_team = draw_teams(self.parent_view.confirmed_players)
         self.parent_view.update_buttons()
         await self.parent_view.update_embed(started=False)
-        await interaction.followup.send("Times sorteados!", ephemeral=True, delete_after=5)
+        message = await interaction.followup.send("Times sorteados!", ephemeral=True)
+        await asyncio.sleep(5)
+        await message.delete()
 
 class SwitchSideButton(ui.Button):
     def __init__(self, parent_view: CustomMatchView):
@@ -185,7 +203,9 @@ class SwitchSideButton(ui.Button):
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         # Implementar a lógica de troca de lado se necessário
-        await interaction.followup.send("Função ainda não implementada.", ephemeral=True, delete_after=5)
+        message = await interaction.followup.send("Função ainda não implementada.", ephemeral=True)
+        await asyncio.sleep(5)
+        await message.delete()
 
 class StartButton(ui.Button):
     def __init__(self, parent_view: CustomMatchView):
@@ -196,11 +216,15 @@ class StartButton(ui.Button):
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
         if interaction.user != self.parent_view.creator:
-            await interaction.followup.send("Apenas o criador pode iniciar.", ephemeral=True, delete_after=5)
+            message = await interaction.followup.send("Apenas o criador pode iniciar.", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
             return
 
         if self.parent_view.match_format.value == 0 and not (self.parent_view.blue_team and self.parent_view.red_team):
-            await interaction.followup.send("Sorteie os times primeiro.", ephemeral=True, delete_after=5)
+            message = await interaction.followup.send("Sorteie os times primeiro.", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
             return
         
         if self.parent_view.match_format.value == 1: # Modo Livre
@@ -257,7 +281,10 @@ class FinishButton(ui.Button):
         await interaction.response.defer(ephemeral=True)
 
         if interaction.user != self.parent_view.creator:
-            return await interaction.followup.send("Apenas o criador pode finalizar.", ephemeral=True, delete_after=5)
+            message = await interaction.followup.send("Apenas o criador pode finalizar.", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
+            return
 
         if self.parent_view.online_mode.value == 0: # Offline
             await self.parent_view.update_embed(finished=True)
@@ -265,10 +292,16 @@ class FinishButton(ui.Button):
             return
 
         if self.parent_view.finishing:
-            return await interaction.followup.send("A seleção de vencedor já está em andamento.", ephemeral=True, delete_after=5)
+            message = await interaction.followup.send("A seleção de vencedor já está em andamento.", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
+            return
 
         if not self.parent_view.match_id or not self.parent_view.blue_team_id or not self.parent_view.red_team_id:
-            return await interaction.followup.send("IDs da partida ou dos times não encontrados. Não é possível finalizar.", ephemeral=True, delete_after=5)
+            message = await interaction.followup.send("IDs da partida ou dos times não encontrados. Não é possível finalizar.", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
+            return
 
         # Desabilita o botão e atualiza a view principal
         self.disabled = True
@@ -388,16 +421,25 @@ class RejoinButton(ui.Button):
         await interaction.response.defer(ephemeral=True)
 
         if not user.voice:
-            return await interaction.followup.send("Você precisa estar em um canal de voz para ser movido.", ephemeral=True, delete_after=5)
+            message = await interaction.followup.send("Você precisa estar em um canal de voz para ser movido.", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
+            return
 
         if user in self.parent_view.blue_team:
             await user.move_to(self.parent_view.blue_channel)
-            await interaction.followup.send("Você foi movido para o canal do Time Azul.", ephemeral=True, delete_after=5)
+            message = await interaction.followup.send("Você foi movido para o canal do Time Azul.", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
         elif user in self.parent_view.red_team:
             await user.move_to(self.parent_view.red_channel)
-            await interaction.followup.send("Você foi movido para o canal do Time Vermelho.", ephemeral=True, delete_after=5)
+            message = await interaction.followup.send("Você foi movido para o canal do Time Vermelho.", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
         else:
-            await interaction.followup.send("Você não faz parte desta partida.", ephemeral=True, delete_after=5)
+            message = await interaction.followup.send("Você não faz parte desta partida.", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
 
 
 class AccountCreationConfirmView(BaseView):
