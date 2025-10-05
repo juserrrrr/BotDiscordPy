@@ -108,8 +108,24 @@ class CriarPerson(commands.Cog):
         )
 
         if debug:
-            mock_players = [MockUser(name=f"Ply{i}", id=i) for i in range(1, 11)]
-            view.confirmed_players = mock_players
+            # Hardcoded Discord IDs provided by the user for debug mode
+            default_discord_ids = [
+                "919276824578646068", "352240724693090305", "373887997826957312",
+                "1089165750993948774", "209825857815052288", "343492133644140544",
+                "191630723935895553", "214397364163706880", "430165932963266561",
+                "635277051439611914"
+            ]
+            player_ids = default_discord_ids
+
+            confirmed_players = []
+            for i, p_id in enumerate(player_ids):
+                try:
+                    user_obj = await self.client.fetch_user(int(p_id))
+                    confirmed_players.append(user_obj)
+                except (discord.NotFound, ValueError):
+                    confirmed_players.append(MockUser(name=f"TestPlayer{i+1}", id=int(p_id)))
+            
+            view.confirmed_players = confirmed_players
             view.update_buttons()
 
         if not view.blue_team and not view.red_team:

@@ -347,24 +347,21 @@ class WinningTeamSelect(ui.Select):
         winner_team_id = int(self.values[0])
         
         response_ok = False
-        if self.parent_view.match_view.debug:
+        timbas = timbasService()
+        payload = {"winnerId": winner_team_id}
+        response = timbas.updateMatchWinner(self.parent_view.match_view.match_id, payload)
+        if response.status_code == 200:
             response_ok = True
         else:
-            timbas = timbasService()
-            payload = {"winnerId": winner_team_id}
-            response = timbas.updateMatchWinner(self.parent_view.match_view.match_id, payload)
-            if response.status_code == 200:
-                response_ok = True
-            else:
-                # Usa followup para enviar o erro
-                await interaction.followup.send(f"Erro ao finalizar a partida: {response.text}", ephemeral=True)
-                # Re-habilita o botão em caso de erro
-                self.parent_view.match_view.finishing = False
-                for item in self.parent_view.match_view.children:
-                    if isinstance(item, FinishButton):
-                        item.disabled = False
-                        break
-                await self.parent_view.match_view.original_message.edit(view=self.parent_view.match_view)
+            # Usa followup para enviar o erro
+            await interaction.followup.send(f"Erro ao finalizar a partida: {response.text}", ephemeral=True)
+            # Re-habilita o botão em caso de erro
+            self.parent_view.match_view.finishing = False
+            for item in self.parent_view.match_view.children:
+                if isinstance(item, FinishButton):
+                    item.disabled = False
+                    break
+            await self.parent_view.match_view.original_message.edit(view=self.parent_view.match_view)
 
         if response_ok:
             winner_side = 'BLUE' if winner_team_id == self.parent_view.match_view.blue_team_id else 'RED'
