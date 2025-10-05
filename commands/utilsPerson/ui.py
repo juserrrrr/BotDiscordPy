@@ -414,11 +414,8 @@ class AccountCreationConfirmView(BaseView):
             self.result = False
             
             await asyncio.sleep(5)
-            
-            try:
-                await interaction.delete_original_response()
-            except discord.errors.NotFound:
-                pass
+            await interaction.delete_original_response()
+
 
         else:
             await interaction.edit_original_response(
@@ -427,11 +424,7 @@ class AccountCreationConfirmView(BaseView):
             self.result = True
             
             await asyncio.sleep(2)
-
-            try:
-                await interaction.delete_original_response()
-            except discord.errors.NotFound:
-                pass
+            await interaction.delete_original_response()
             
         self.stop()
 
