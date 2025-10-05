@@ -18,7 +18,7 @@ from services.timbasService import timbasService
 class CustomMatchView(BaseView):
     """View principal para gerenciar uma partida personalizada."""
 
-    def __init__(self, creator: discord.User, waiting_channel: discord.VoiceChannel, blue_channel: discord.VoiceChannel, red_channel: discord.VoiceChannel, online_mode: app_commands.Choice[int], match_format: app_commands.Choice[int], debug: bool = False):
+    def __init__(self, creator: discord.User, waiting_channel: discord.VoiceChannel, blue_channel: discord.VoiceChannel, red_channel: discord.VoiceChannel, online_mode: app_commands.Choice[int], match_format: app_commands.Choice[int], original_message: discord.Message = None, debug: bool = False):
         super().__init__(timeout=None)  # A view persiste
         self.creator = creator
         self.waiting_channel = waiting_channel
@@ -34,7 +34,7 @@ class CustomMatchView(BaseView):
         self.match_id = None
         self.blue_team_id = None
         self.red_team_id = None
-        self.message_interaction = None
+        self.original_message = original_message
         self.finishing = False
 
         self.update_buttons()
@@ -61,7 +61,7 @@ class CustomMatchView(BaseView):
             self.add_item(RejoinButton(self))
             self.add_item(FinishButton(self))
 
-    async def update_embed(self, interaction: discord.Interaction, started=False, finished=False):
+    async def update_embed(self, started=False, finished=False):
         """Atualiza o embed da partida."""
         if not self.blue_team and not self.red_team:
             blue_display = self.confirmed_players[:5]
@@ -90,10 +90,10 @@ class CustomMatchView(BaseView):
         embed.set_footer(text=footer_text)
         embed.set_image(url="attachment://timbasQueue.png")
         
-        if interaction.response.is_done():
-            await interaction.edit_original_response(embed=embed, view=self)
+        if self.original_message:
+            await self.original_message.edit(embed=embed, view=self)
         else:
-            await interaction.response.edit_message(embed=embed, view=self)
+            print("Error: original_message not set in CustomMatchView.update_embed")
 
 
 # --- Botões --- #
@@ -134,7 +134,7 @@ class JoinButton(ui.Button):
 
         await user.move_to(self.parent_view.waiting_channel)
         self.parent_view.update_buttons()
-        await self.parent_view.update_embed(interaction)
+        await self.parent_view.update_embed()
 
 class LeaveButton(ui.Button):
     def __init__(self, parent_view: CustomMatchView):
@@ -146,7 +146,7 @@ class LeaveButton(ui.Button):
         if user in self.parent_view.confirmed_players:
             self.parent_view.confirmed_players.remove(user)
             self.parent_view.update_buttons()
-            await self.parent_view.update_embed(interaction)
+            await self.parent_view.update_embed()
         else:
             await interaction.response.send_message("Você não está na lista.", ephemeral=True, delete_after=5)
 
@@ -166,7 +166,7 @@ class DrawButton(ui.Button):
 
         self.parent_view.blue_team, self.parent_view.red_team = draw_teams(self.parent_view.confirmed_players)
         self.parent_view.update_buttons()
-        await self.parent_view.update_embed(interaction, started=False)
+        await self.parent_view.update_embed(started=False)
 
 class SwitchSideButton(ui.Button):
     def __init__(self, parent_view: CustomMatchView):
@@ -236,7 +236,7 @@ class StartButton(ui.Button):
         
         self.parent_view.started = True
         self.parent_view.update_buttons()
-        await self.parent_view.update_embed(interaction, started=True)
+        await self.parent_view.update_embed(started=True)
 
 class FinishButton(ui.Button):
     def __init__(self, parent_view: CustomMatchView):
@@ -248,7 +248,7 @@ class FinishButton(ui.Button):
             return await interaction.response.send_message("Apenas o criador pode finalizar.", ephemeral=True, delete_after=5)
 
         if self.parent_view.online_mode.value == 0: # Offline
-            await self.parent_view.update_embed(interaction, finished=True)
+            await self.parent_view.update_embed(finished=True)
             self.parent_view.stop()
             return
 
@@ -261,7 +261,7 @@ class FinishButton(ui.Button):
         # Desabilita o botão e atualiza a view principal
         self.disabled = True
         self.parent_view.finishing = True
-        await self.parent_view.message_interaction.edit_original_response(view=self.parent_view)
+        await self.parent_view.original_message.edit(view=self.parent_view)
 
         # Envia a view de finalização como resposta efêmera à interação atual
         finish_view = FinishMatchView(self.parent_view)
@@ -305,7 +305,7 @@ class WinningTeamSelect(ui.Select):
                     if isinstance(item, FinishButton):
                         item.disabled = False
                         break
-                await self.parent_view.match_view.message_interaction.edit_original_response(view=self.parent_view.match_view)
+                await self.parent_view.match_view.original_message.edit(view=self.parent_view.match_view)
 
         if response_ok:
             winner_side = 'BLUE' if winner_team_id == self.parent_view.match_view.blue_team_id else 'RED'
@@ -329,8 +329,8 @@ class WinningTeamSelect(ui.Select):
             final_embed.set_image(url="attachment://timbasQueue.png")
 
             # Edita a mensagem original com a nova embed
-            original_interaction = self.parent_view.match_view.message_interaction
-            await original_interaction.edit_original_response(embed=final_embed, view=None)
+            original_message = self.parent_view.match_view.original_message
+            await original_message.edit(embed=final_embed, view=None)
 
             self.parent_view.match_view.stop()
         
@@ -357,7 +357,7 @@ class FinishMatchView(BaseView):
                 break
         
         try:
-            await self.match_view.message_interaction.edit_original_response(view=self.match_view)
+            await self.match_view.original_message.edit(view=self.match_view)
         except discord.errors.NotFound:
             pass # A interação original pode ter expirado.
 
