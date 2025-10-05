@@ -131,7 +131,6 @@ class JoinButton(ui.Button):
                 if not confirm_view.result:
                     return
                 
-                await interaction.delete_original_response()
 
         await user.move_to(self.parent_view.waiting_channel)
         self.parent_view.update_buttons()
@@ -411,7 +410,7 @@ class AccountCreationConfirmView(BaseView):
 
         if create_response.status_code != 201:
             msg = await interaction.followup.send(
-                f"❌ Ocorreu um erro ao criar sua conta: {create_response.text}. Tente novamente.",
+                "❌ Ocorreu um erro ao criar sua conta. Tente novamente.",
                 ephemeral=True
             )
             self.result = False
