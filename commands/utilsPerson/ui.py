@@ -463,24 +463,22 @@ class AccountCreationConfirmView(BaseView):
         
         create_response = await create_timbas_player(self.user, None)
 
+        async def delete_message_later(interaction: discord.Interaction, delay: int):
+            await asyncio.sleep(delay)
+            await interaction.delete_original_response()
+
         if create_response.status_code != 201:
             await interaction.edit_original_response(
                 content="❌ Ocorreu um erro ao criar sua conta. Tente novamente."
             )
             self.result = False
-            
-            await asyncio.sleep(5)
-            await interaction.delete_original_response()
-
-
+            asyncio.create_task(delete_message_later(interaction, 5))
         else:
             await interaction.edit_original_response(
                 content="✅ Conta criada com sucesso!"
             )
             self.result = True
-            
-            await asyncio.sleep(2)
-            await interaction.delete_original_response()
+            asyncio.create_task(delete_message_later(interaction, 2))
             
         self.stop()
 
