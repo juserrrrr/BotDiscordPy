@@ -99,6 +99,7 @@ class Ranking(commands.Cog):
         embed.set_footer(text="Os melhores jogadores do servidor com base nas partidas personalizadas.")
 
         await interaction.channel.send(embed=embed)
+        await interaction.followup.send("Comando de ranking executado com sucesso!", ephemeral=True, delete_after=5)
 
 async def setup(client):
     await client.add_cog(Ranking(client))

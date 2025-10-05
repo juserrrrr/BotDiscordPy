@@ -116,7 +116,7 @@ class JoinButton(ui.Button):
             user_data = response.json() if response else None
 
             if not user_data or not is_user_registered(response):
-                confirm_view = AccountCreationConfirmView()
+                confirm_view = AccountCreationConfirmView(user=user, original_interaction=interaction)
                 await interaction.response.send_message(
                     "Não encontramos uma conta Timbas vinculada ao seu Discord. Deseja criar uma agora?",
                     view=confirm_view,
@@ -124,24 +124,11 @@ class JoinButton(ui.Button):
                 )
                 await confirm_view.wait()
 
-                if confirm_view.value is True:
-                    create_response = await create_timbas_player(user, None)
-                    if create_response.status_code != 201: # Assuming 201 Created for success
-                        await interaction.followup.send("Ocorreu um erro ao criar sua conta. Tente novamente.", ephemeral=True)
-                        return
-                    # If creation is successful, we can assume user_data is now available via the initial fetch
-                    # No need to re-fetch, just proceed.
-                else:
-                    await interaction.edit_original_response(
-                        content="É necessário ter uma conta Timbas para participar de partidas online.",
-                        view=None, # Remove os botões
-                        delete_after=5
-                    )
+                if not confirm_view.result:
                     return
+                
+                await interaction.delete_original_response()
 
-
-
-        self.parent_view.confirmed_players.append(user)
         await user.move_to(self.parent_view.waiting_channel)
         self.parent_view.update_buttons()
         await self.parent_view.update_embed(interaction)
@@ -398,21 +385,41 @@ class RejoinButton(ui.Button):
 
 class AccountCreationConfirmView(ui.View):
     """View para confirmar a criação de conta para o usuário."""
-    def __init__(self):
-        super().__init__(timeout=60)
-        self.value = None # True for yes, False for no
+    def __init__(self, user: discord.User, original_interaction: discord.Interaction):
+        super().__init__(timeout=60) 
+        self.user = user
+        self.original_interaction = original_interaction
+        self.result = None 
+
+    async def on_timeout(self):
+        self.result = None
+        self.stop()
 
     @ui.button(label="Sim, criar conta", style=discord.ButtonStyle.green)
     async def confirm(self, interaction: discord.Interaction, button: ui.Button):
-        self.value = True
+        await interaction.response.defer(ephemeral=True)
+        create_response = await create_timbas_player(self.user, None)
+        if create_response.status_code != 201:
+            await interaction.followup.send(
+                "Ocorreu um erro ao criar sua conta. Tente novamente.", 
+                ephemeral=True,
+                delete_after=5
+            )
+            self.result = False 
+        else:
+            self.result = True 
         self.stop()
-        await interaction.response.defer()
 
     @ui.button(label="Não, obrigado", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: ui.Button):
-        self.value = False
+        await interaction.response.defer(ephemeral=True)
+        await interaction.followup.send(
+            "É necessário ter uma conta Timbas para participar de partidas online.",
+            ephemeral=True,
+            delete_after=5
+        )
+        self.result = False
         self.stop()
-        await interaction.response.defer()
 
 
 class ConfirmChannelCreationView(ui.View):
