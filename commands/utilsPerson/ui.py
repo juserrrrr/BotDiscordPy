@@ -122,7 +122,7 @@ class JoinButton(ui.Button):
             if not user_data or not is_user_registered(response):
                 confirm_view = AccountCreationConfirmView(user=user, original_interaction=interaction)
                 await interaction.response.send_message(
-                    "Não encontramos uma conta Timbas vinculada ao seu Discord. Deseja criar uma agora?",
+                    "Não encontramos uma conta Timbas vinculada ao seu Discord. Deseja criar uma agora? (O processo é automatico)",
                     view=confirm_view,
                     ephemeral=True
                 )
@@ -401,30 +401,37 @@ class AccountCreationConfirmView(BaseView):
     @ui.button(label="Sim, criar conta", style=discord.ButtonStyle.green)
     async def confirm(self, interaction: discord.Interaction, button: ui.Button):
         await interaction.response.edit_message(
-            content="⌛ Criando sua conta Timbas, por favor aguarde..."
+            content="⌛ Criando sua conta Timbas, por favor aguarde...",
+            view=None
         )
         
         create_response = await create_timbas_player(self.user, None)
 
-        await interaction.delete_original_response()
-
         if create_response.status_code != 201:
-            msg = await interaction.followup.send(
-                "❌ Ocorreu um erro ao criar sua conta. Tente novamente.",
-                ephemeral=True
+            await interaction.edit_original_response(
+                content="❌ Ocorreu um erro ao criar sua conta. Tente novamente."
             )
             self.result = False
+            
             await asyncio.sleep(5)
-            await msg.delete()
+            
+            try:
+                await interaction.delete_original_response()
+            except discord.errors.NotFound:
+                pass
 
         else:
-            msg = await interaction.followup.send(
-                "✅ Conta criada com sucesso!",
-                ephemeral=True
+            await interaction.edit_original_response(
+                content="✅ Conta criada com sucesso!"
             )
             self.result = True
+            
             await asyncio.sleep(2)
-            await msg.delete()
+
+            try:
+                await interaction.delete_original_response()
+            except discord.errors.NotFound:
+                pass
             
         self.stop()
 
