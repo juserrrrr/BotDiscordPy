@@ -9,6 +9,7 @@ from typing import List
 import asyncio
 import random
 import string
+import logging
 
 from base.BaseViews import BaseView
 
@@ -255,10 +256,10 @@ class StartButton(ui.Button):
                     "players": [{ "discordId": str(p.id) } for p in self.parent_view.red_team]
                 }
             }
-            print(f"API Request Payload: {payload}")
+            logging.info(f"API Request Payload: {payload}")
             response = timbas.createMatch(payload)
-            print(f"API Response Status Code: {response.status_code}")
-            print(f"API Response JSON: {response.json()}")
+            logging.info(f"API Response Status Code: {response.status_code}")
+            logging.info(f"API Response JSON: {response.json()}")
             if response.status_code == 201:
                 match_data = response.json()
                 self.parent_view.match_id = match_data.get('id')
