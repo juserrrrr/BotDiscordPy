@@ -95,8 +95,6 @@ class TestarPartida(commands.Cog):
         for i, p_id in enumerate(player_ids):
             try:
                 user_obj = await self.client.fetch_user(int(p_id))
-                if not hasattr(user_obj, 'voice'):
-                    user_obj.voice = MockVoice()
                 confirmed_players.append(user_obj)
             except (discord.NotFound, ValueError):
                 confirmed_players.append(MockUser(name=f"TestPlayer{i+1}", id=int(p_id)))
