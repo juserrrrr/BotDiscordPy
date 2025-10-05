@@ -84,8 +84,8 @@ def split_user_tag(name: str) -> List[str]:
 
 
 def is_user_registered(response) -> bool:
-    """Verifica se o usuário do Timbas tem uma conta do LoL associada."""
-    return response.status_code == 200 and response.json().get('leaguePuuid') is not None
+    """Verifica se o usuário do Timbas tem uma conta associada."""
+    return response.status_code == 200
 
 
 async def create_timbas_player(user: discord.User, league_data: dict = None):
@@ -97,7 +97,6 @@ async def create_timbas_player(user: discord.User, league_data: dict = None):
     }
     if league_data:
         payload['name'] = league_data.get('name')
-        payload['leaguePuuid'] = str(league_data.get('puuid'))
     return timbas.createPlayer(payload)
 
 

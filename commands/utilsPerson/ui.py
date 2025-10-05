@@ -125,12 +125,12 @@ class JoinButton(ui.Button):
                 await confirm_view.wait()
 
                 if confirm_view.value is True:
-                    await create_timbas_player(user, None)
-                    response = timbas.getUserByDiscordId(user.id)
-                    user_data = response.json() if response else None
-                    if not user_data:
+                    create_response = await create_timbas_player(user, None)
+                    if create_response.status_code != 201: # Assuming 201 Created for success
                         await interaction.followup.send("Ocorreu um erro ao criar sua conta. Tente novamente.", ephemeral=True)
                         return
+                    # If creation is successful, we can assume user_data is now available via the initial fetch
+                    # No need to re-fetch, just proceed.
                 else:
                     await interaction.edit_original_response(
                         content="É necessário ter uma conta Timbas para participar de partidas online.",
@@ -139,9 +139,7 @@ class JoinButton(ui.Button):
                     )
                     return
 
-            if user_data and not user_data.get('leaguePuuid'):
-                await interaction.response.send_modal(LeagueVerificationModal())
-                return
+
 
         self.parent_view.confirmed_players.append(user)
         await user.move_to(self.parent_view.waiting_channel)
@@ -375,11 +373,7 @@ class FinishMatchView(ui.View):
 
         if self.message:
             await self.message.delete()
-
-
-
-
-
+            
 
 class RejoinButton(ui.Button):
     """Botão para retornar ao canal de voz da equipe."""

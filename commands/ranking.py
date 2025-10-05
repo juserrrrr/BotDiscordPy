@@ -88,7 +88,6 @@ class Ranking(commands.Cog):
             if len(display_name) > 15:
                 display_name = display_name[:12] + "..."
 
-            # Ajuste a largura da coluna 'pos_column' para 5.
             # pos_column (3 caracteres) + 2 espaços = 5 caracteres no total.
             main_line = f"{pos_column:<5}{display_name:<15}{f'{wins}/{losses}':<8}{total_games:<6}{f'{win_rate:.1f}%':<8}"
             
@@ -99,7 +98,7 @@ class Ranking(commands.Cog):
         embed.description = "```\n" + "\n".join(header_lines + ranking_list_lines) + "\n```"
         embed.set_footer(text="Os melhores jogadores do servidor com base nas partidas personalizadas.")
 
-        await interaction.followup.send(embed=embed)
+        await interaction.channel.send(embed=embed)
 
 async def setup(client):
     await client.add_cog(Ranking(client))
