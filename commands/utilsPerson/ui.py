@@ -278,9 +278,9 @@ class StartButton(ui.Button):
                 asyncio.create_task(delete_message_after_delay(message))
                 return
 
-        if self.parent_view.blue_channel and self.parent_view.red_channel:
-            await move_team_to_channel(self.parent_view.blue_team, self.parent_view.blue_channel)
-            await move_team_to_channel(self.parent_view.red_team, self.parent_view.red_channel)
+            if (self.parent_view.blue_channel and self.parent_view.red_channel) and not self.parent_view.debug:
+                await move_team_to_channel(self.parent_view.blue_team, self.parent_view.blue_channel)
+                await move_team_to_channel(self.parent_view.red_team, self.parent_view.red_channel)
         
         self.parent_view.started = True
         self.parent_view.update_buttons()

@@ -66,7 +66,7 @@ def draw_teams(players: List[discord.User]) -> Tuple[List[discord.User], List[di
 async def move_team_to_channel(team: List[discord.User], channel: discord.VoiceChannel):
     """Move todos os jogadores de um time para um canal de voz específico."""
     for user in team:
-        if user.voice:
+        if isinstance(user, discord.Member) and user.voice:
             await user.move_to(channel)
 
 
