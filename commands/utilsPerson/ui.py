@@ -105,14 +105,18 @@ class JoinButton(ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         user = interaction.user
+        
+        # Defer the interaction immediately
+        await interaction.response.defer(ephemeral=True)
+
         if not user.voice:
-            return await interaction.response.send_message("Você precisa estar em um canal de voz.", ephemeral=True, delete_after=5)
+            return await interaction.followup.send("Você precisa estar em um canal de voz.", ephemeral=True, delete_after=5)
         
         if user in self.parent_view.confirmed_players:
-            return await interaction.response.send_message("Você já está na lista.", ephemeral=True, delete_after=5)
+            return await interaction.followup.send("Você já está na lista.", ephemeral=True, delete_after=5)
 
         if len(self.parent_view.confirmed_players) >= 10:
-            return await interaction.response.send_message("A partida já está cheia.", ephemeral=True, delete_after=5)
+            return await interaction.followup.send("A partida já está cheia.", ephemeral=True, delete_after=5)
 
         if self.parent_view.online_mode.value == 1:
             timbas = timbasService()
@@ -121,7 +125,7 @@ class JoinButton(ui.Button):
 
             if not user_data or not is_user_registered(response):
                 confirm_view = AccountCreationConfirmView(user=user, original_interaction=interaction)
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     "Não encontramos uma conta Timbas vinculada ao seu Discord. Deseja criar uma agora? (O processo é automatico)",
                     view=confirm_view,
                     ephemeral=True
@@ -131,8 +135,8 @@ class JoinButton(ui.Button):
                 if not confirm_view.result:
                     return
                 
-
         await user.move_to(self.parent_view.waiting_channel)
+        self.parent_view.confirmed_players.append(user)
         self.parent_view.update_buttons()
         await self.parent_view.update_embed()
 
@@ -143,12 +147,15 @@ class LeaveButton(ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         user = interaction.user
+        await interaction.response.defer(ephemeral=True)
+
         if user in self.parent_view.confirmed_players:
             self.parent_view.confirmed_players.remove(user)
             self.parent_view.update_buttons()
             await self.parent_view.update_embed()
+            await interaction.followup.send("Você saiu da lista de jogadores.", ephemeral=True, delete_after=5)
         else:
-            await interaction.response.send_message("Você não está na lista.", ephemeral=True, delete_after=5)
+            await interaction.followup.send("Você não está na lista.", ephemeral=True, delete_after=5)
 
 class PlayerCountButton(ui.Button):
     def __init__(self, players: List[discord.User]):
@@ -161,12 +168,14 @@ class DrawButton(ui.Button):
         self.parent_view = parent_view
 
     async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
         if interaction.user != self.parent_view.creator:
-            return await interaction.response.send_message("Apenas o criador pode sortear.", ephemeral=True, delete_after=5)
+            return await interaction.followup.send("Apenas o criador pode sortear.", ephemeral=True, delete_after=5)
 
         self.parent_view.blue_team, self.parent_view.red_team = draw_teams(self.parent_view.confirmed_players)
         self.parent_view.update_buttons()
         await self.parent_view.update_embed(started=False)
+        await interaction.followup.send("Times sorteados!", ephemeral=True, delete_after=5)
 
 class SwitchSideButton(ui.Button):
     def __init__(self, parent_view: CustomMatchView):
@@ -174,8 +183,9 @@ class SwitchSideButton(ui.Button):
         self.parent_view = parent_view
 
     async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
         # Implementar a lógica de troca de lado se necessário
-        await interaction.response.send_message("Função ainda não implementada.", ephemeral=True, delete_after=5)
+        await interaction.followup.send("Função ainda não implementada.", ephemeral=True, delete_after=5)
 
 class StartButton(ui.Button):
     def __init__(self, parent_view: CustomMatchView):
@@ -244,8 +254,10 @@ class FinishButton(ui.Button):
         self.parent_view = parent_view
 
     async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+
         if interaction.user != self.parent_view.creator:
-            return await interaction.response.send_message("Apenas o criador pode finalizar.", ephemeral=True, delete_after=5)
+            return await interaction.followup.send("Apenas o criador pode finalizar.", ephemeral=True, delete_after=5)
 
         if self.parent_view.online_mode.value == 0: # Offline
             await self.parent_view.update_embed(finished=True)
@@ -253,10 +265,10 @@ class FinishButton(ui.Button):
             return
 
         if self.parent_view.finishing:
-            return await interaction.response.send_message("A seleção de vencedor já está em andamento.", ephemeral=True, delete_after=5)
+            return await interaction.followup.send("A seleção de vencedor já está em andamento.", ephemeral=True, delete_after=5)
 
         if not self.parent_view.match_id or not self.parent_view.blue_team_id or not self.parent_view.red_team_id:
-            return await interaction.response.send_message("IDs da partida ou dos times não encontrados. Não é possível finalizar.", ephemeral=True, delete_after=5)
+            return await interaction.followup.send("IDs da partida ou dos times não encontrados. Não é possível finalizar.", ephemeral=True, delete_after=5)
 
         # Desabilita o botão e atualiza a view principal
         self.disabled = True
@@ -265,7 +277,7 @@ class FinishButton(ui.Button):
 
         # Envia a view de finalização como resposta efêmera à interação atual
         finish_view = FinishMatchView(self.parent_view)
-        await interaction.response.send_message("Quem venceu a partida?", view=finish_view, ephemeral=True)
+        await interaction.followup.send("Quem venceu a partida?", view=finish_view, ephemeral=True)
         finish_view.message = await interaction.original_response()
 
 
@@ -373,17 +385,19 @@ class RejoinButton(ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         user = interaction.user
+        await interaction.response.defer(ephemeral=True)
+
         if not user.voice:
-            return await interaction.response.send_message("Você precisa estar em um canal de voz para ser movido.", ephemeral=True, delete_after=5)
+            return await interaction.followup.send("Você precisa estar em um canal de voz para ser movido.", ephemeral=True, delete_after=5)
 
         if user in self.parent_view.blue_team:
             await user.move_to(self.parent_view.blue_channel)
-            await interaction.response.send_message("Você foi movido para o canal do Time Azul.", ephemeral=True, delete_after=5)
+            await interaction.followup.send("Você foi movido para o canal do Time Azul.", ephemeral=True, delete_after=5)
         elif user in self.parent_view.red_team:
             await user.move_to(self.parent_view.red_channel)
-            await interaction.response.send_message("Você foi movido para o canal do Time Vermelho.", ephemeral=True, delete_after=5)
+            await interaction.followup.send("Você foi movido para o canal do Time Vermelho.", ephemeral=True, delete_after=5)
         else:
-            await interaction.response.send_message("Você não faz parte desta partida.", ephemeral=True, delete_after=5)
+            await interaction.followup.send("Você não faz parte desta partida.", ephemeral=True, delete_after=5)
 
 
 class AccountCreationConfirmView(BaseView):
