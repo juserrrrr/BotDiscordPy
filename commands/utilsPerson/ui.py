@@ -7,6 +7,8 @@ from discord import ui, app_commands
 from typing import List
 
 import asyncio
+import random
+import string
 
 from base.BaseViews import BaseView
 
@@ -243,8 +245,14 @@ class StartButton(ui.Button):
             self.parent_view.red_team_id = 102
         elif self.parent_view.online_mode.value == 1:
             timbas = timbasService()
+
+            # Gerar riotMatchId aleatório
+            random_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=9))
+            riot_match_id = f"TB_{random_string}"
+
             payload = {
                 "ServerDiscordId": str(interaction.guild.id),
+                "riotMatchId": riot_match_id,
                 "teamBlue": {
                     "players": [{ "discordId": str(p.id) } for p in self.parent_view.blue_team]
                 },
@@ -270,8 +278,9 @@ class StartButton(ui.Button):
                 asyncio.create_task(delete_message_after_delay(message))
                 return
 
-        await move_team_to_channel(self.parent_view.blue_team, self.parent_view.blue_channel)
-        await move_team_to_channel(self.parent_view.red_team, self.parent_view.red_channel)
+        if self.parent_view.blue_channel and self.parent_view.red_channel:
+            await move_team_to_channel(self.parent_view.blue_team, self.parent_view.blue_channel)
+            await move_team_to_channel(self.parent_view.red_team, self.parent_view.red_channel)
         
         self.parent_view.started = True
         self.parent_view.update_buttons()
