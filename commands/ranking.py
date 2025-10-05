@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+import asyncio
 
 from services.timbasService import timbasService
 
@@ -14,9 +15,15 @@ class Ranking(commands.Cog):
     async def ranking(self, interaction: discord.Interaction, debug: bool = False):
         await interaction.response.defer(ephemeral=True)
 
+        async def delete_message_after_delay(msg):
+            await asyncio.sleep(5)
+            await msg.delete()
+
         if debug:
             if interaction.user.id != interaction.guild.owner_id:
-                return await interaction.followup.send("Você não tem permissão para usar o modo de debug.", ephemeral=True, delete_after=5)
+                message = await interaction.followup.send("Você não tem permissão para usar o modo de debug.", ephemeral=True)
+                asyncio.create_task(delete_message_after_delay(message))
+                return
             
             from random import randint
             ranking_data = []
@@ -37,14 +44,14 @@ class Ranking(commands.Cog):
 
             if response.status_code != 200:
                 msg = await interaction.followup.send(f"Não foi possível obter o ranking. Erro: {response.text}", ephemeral=True)
-                await msg.delete(delay=5)
+                asyncio.create_task(delete_message_after_delay(msg))
                 return
 
             ranking_data = response.json()
         
         if not ranking_data:
             msg = await interaction.followup.send("Ainda não há jogadores no ranking deste servidor.", ephemeral=True)
-            await msg.delete(delay=5)
+            asyncio.create_task(delete_message_after_delay(msg))
             return
         
         total_width = 45
@@ -99,7 +106,5 @@ class Ranking(commands.Cog):
         embed.set_footer(text="Os melhores jogadores do servidor com base nas partidas personalizadas.")
 
         await interaction.channel.send(embed=embed)
-        await interaction.followup.send("Comando de ranking executado com sucesso!", ephemeral=True, delete_after=5)
-
-async def setup(client):
-    await client.add_cog(Ranking(client))
+        message = await interaction.followup.send("Comando de ranking executado com sucesso!", ephemeral=True)
+        asyncio.create_task(delete_message_after_delay(message))

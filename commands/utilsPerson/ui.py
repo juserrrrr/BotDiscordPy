@@ -215,16 +215,19 @@ class StartButton(ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
+
+        async def delete_message_after_delay(msg):
+            await asyncio.sleep(5)
+            await msg.delete()
+
         if interaction.user != self.parent_view.creator:
             message = await interaction.followup.send("Apenas o criador pode iniciar.", ephemeral=True)
-            await asyncio.sleep(5)
-            await message.delete()
+            asyncio.create_task(delete_message_after_delay(message))
             return
 
         if self.parent_view.match_format.value == 0 and not (self.parent_view.blue_team and self.parent_view.red_team):
             message = await interaction.followup.send("Sorteie os times primeiro.", ephemeral=True)
-            await asyncio.sleep(5)
-            await message.delete()
+            asyncio.create_task(delete_message_after_delay(message))
             return
         
         if self.parent_view.match_format.value == 1: # Modo Livre
@@ -259,10 +262,12 @@ class StartButton(ui.Button):
                     self.parent_view.red_team_id = match_data['teamRed']['id']
 
                 if not self.parent_view.match_id or not self.parent_view.blue_team_id or not self.parent_view.red_team_id:
-                    await interaction.followup.send("Erro: A resposta da API não continha os IDs necessários.", ephemeral=True, delete_after=5)
+                    message = await interaction.followup.send("Erro: A resposta da API não continha os IDs necessários.", ephemeral=True)
+                    asyncio.create_task(delete_message_after_delay(message))
                     return
             else:
-                await interaction.followup.send(f"Erro ao criar a partida na API: {response.text}", ephemeral=True, delete_after=5)
+                message = await interaction.followup.send(f"Erro ao criar a partida na API: {response.text}", ephemeral=True)
+                asyncio.create_task(delete_message_after_delay(message))
                 return
 
         await move_team_to_channel(self.parent_view.blue_team, self.parent_view.blue_channel)
@@ -486,8 +491,7 @@ class AccountCreationConfirmView(BaseView):
     async def cancel(self, interaction: discord.Interaction, button: ui.Button):
         await interaction.response.edit_message(
             content="É necessário ter uma conta Timbas para participar de partidas online.",
-            view=None,
-            delete_after=5
+            view=None
         )
         self.result = False
         self.stop()
