@@ -6,7 +6,7 @@ import discord
 from discord import ui, app_commands
 from typing import List, Callable
 
-from .helpers import draw_teams, move_team_to_channel, generate_league_embed_text
+from .helpers import draw_teams, move_team_to_channel, generate_league_embed_text, create_timbas_player, is_user_registered
 from .lol import LeagueVerificationModal
 from services.timbasService import timbasService
 
@@ -113,7 +113,32 @@ class JoinButton(ui.Button):
         if self.parent_view.online_mode.value == 1:
             timbas = timbasService()
             response = timbas.getUserByDiscordId(user.id)
-            if not response or not response.json().get('leaguePuuid'):
+            user_data = response.json() if response else None
+
+            if not user_data or not is_user_registered(response):
+                confirm_view = AccountCreationConfirmView()
+                await interaction.response.send_message(
+                    "Para guardar os dados da partida, precisamos criar uma conta para você. Podemos fazer isso?",
+                    view=confirm_view,
+                    ephemeral=True
+                )
+                await confirm_view.wait()
+
+                if confirm_view.value is True:
+                    # Create basic user account without league data
+                    await create_timbas_player(user, None)
+                    # Re-fetch user data after creation
+                    response = timbas.getUserByDiscordId(user.id)
+                    user_data = response.json() if response else None
+                    if not user_data: # Should not happen if creation was successful
+                        await interaction.followup.send("Ocorreu um erro ao criar sua conta. Tente novamente.", ephemeral=True)
+                        return
+                else:
+                    await interaction.followup.send("Você precisa de uma conta para participar de partidas online.", ephemeral=True)
+                    return
+
+            # Now check for leaguePuuid if online_mode is 1 and user_data exists
+            if self.parent_view.online_mode.value == 1 and user_data and not user_data.get('leaguePuuid'):
                 await interaction.response.send_modal(LeagueVerificationModal())
                 return
 
@@ -374,6 +399,25 @@ class RejoinButton(ui.Button):
             await interaction.response.send_message("Você foi movido para o canal do Time Vermelho.", ephemeral=True, delete_after=5)
         else:
             await interaction.response.send_message("Você não faz parte desta partida.", ephemeral=True, delete_after=5)
+
+
+class AccountCreationConfirmView(ui.View):
+    """View para confirmar a criação de conta para o usuário."""
+    def __init__(self):
+        super().__init__(timeout=60)
+        self.value = None # True for yes, False for no
+
+    @ui.button(label="Sim, criar conta", style=discord.ButtonStyle.green)
+    async def confirm(self, interaction: discord.Interaction, button: ui.Button):
+        self.value = True
+        self.stop()
+        await interaction.response.defer()
+
+    @ui.button(label="Não, obrigado", style=discord.ButtonStyle.red)
+    async def cancel(self, interaction: discord.Interaction, button: ui.Button):
+        self.value = False
+        self.stop()
+        await interaction.response.defer()
 
 
 class ConfirmChannelCreationView(ui.View):

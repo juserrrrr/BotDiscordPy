@@ -88,14 +88,16 @@ def is_user_registered(response) -> bool:
     return response.status_code == 200 and response.json().get('leaguePuuid') is not None
 
 
-async def create_timbas_player(user: discord.User, league_data: dict):
+async def create_timbas_player(user: discord.User, league_data: dict = None):
     """Cria um novo jogador no serviço Timbas."""
     timbas = timbasService()
     payload = {
-        'name': league_data.get('name'),
         'discordId': str(user.id),
-        'leaguePuuid': str(league_data.get('puuid')),
+        'name': user.name, # Adiciona o nome do usuário do Discord
     }
+    if league_data:
+        payload['name'] = league_data.get('name')
+        payload['leaguePuuid'] = str(league_data.get('puuid'))
     return timbas.createPlayer(payload)
 
 
