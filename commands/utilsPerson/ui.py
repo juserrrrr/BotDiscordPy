@@ -6,12 +6,14 @@ import discord
 from discord import ui, app_commands
 from typing import List, Callable
 
+from base.BaseViews import BaseView
+
 from .helpers import draw_teams, move_team_to_channel, generate_league_embed_text, create_timbas_player, is_user_registered
 from .lol import LeagueVerificationModal
 from services.timbasService import timbasService
 
 
-class CustomMatchView(ui.View):
+class CustomMatchView(BaseView):
     """View principal para gerenciar uma partida personalizada."""
 
     def __init__(self, creator: discord.User, waiting_channel: discord.VoiceChannel, blue_channel: discord.VoiceChannel, red_channel: discord.VoiceChannel, online_mode: app_commands.Choice[int], match_format: app_commands.Choice[int], debug: bool = False):
@@ -335,7 +337,7 @@ class WinningTeamSelect(ui.Select):
         await interaction.delete_original_response()
 
 
-class FinishMatchView(ui.View):
+class FinishMatchView(BaseView):
     def __init__(self, match_view: CustomMatchView):
         super().__init__(timeout=180) # 3 minutos para decidir
         self.match_view = match_view
@@ -383,7 +385,7 @@ class RejoinButton(ui.Button):
             await interaction.response.send_message("Você não faz parte desta partida.", ephemeral=True, delete_after=5)
 
 
-class AccountCreationConfirmView(ui.View):
+class AccountCreationConfirmView(BaseView):
     """View para confirmar a criação de conta para o usuário."""
     def __init__(self, user: discord.User, original_interaction: discord.Interaction):
         super().__init__(timeout=60) 
@@ -397,32 +399,41 @@ class AccountCreationConfirmView(ui.View):
 
     @ui.button(label="Sim, criar conta", style=discord.ButtonStyle.green)
     async def confirm(self, interaction: discord.Interaction, button: ui.Button):
-        await interaction.response.defer(ephemeral=True)
+        # 1. Dá um feedback imediato na MENSAGEM ATUAL (a efêmera)
+        await interaction.response.edit_message(
+            content="Criando sua conta Timbas, por favor aguarde...", 
+            view=None # Remove os botões
+        )
+        
         create_response = await create_timbas_player(self.user, None)
+
         if create_response.status_code != 201:
-            await interaction.followup.send(
-                "Ocorreu um erro ao criar sua conta. Tente novamente.", 
-                ephemeral=True,
+            await interaction.edit_original_response(
+                content="❌ Ocorreu um erro ao criar sua conta. Tente novamente.", 
                 delete_after=5
             )
-            self.result = False 
+            self.result = False
         else:
-            self.result = True 
+            await interaction.edit_original_response(
+                content="✅ Conta criada com sucesso!", 
+                delete_after=5
+            )
+            self.result = True
+        
         self.stop()
 
     @ui.button(label="Não, obrigado", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: ui.Button):
-        await interaction.response.defer(ephemeral=True)
-        await interaction.followup.send(
-            "É necessário ter uma conta Timbas para participar de partidas online.",
-            ephemeral=True,
+        await interaction.response.edit_message(
+            content="É necessário ter uma conta Timbas para participar de partidas online.",
+            view=None,
             delete_after=5
         )
         self.result = False
         self.stop()
 
 
-class ConfirmChannelCreationView(ui.View):
+class ConfirmChannelCreationView(BaseView):
     """View para confirmar a criação dos canais de voz necessários."""
     def __init__(self):
         super().__init__(timeout=60)
