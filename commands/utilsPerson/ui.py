@@ -423,7 +423,7 @@ class AccountCreationConfirmView(BaseView):
                 ephemeral=True
             )
             self.result = True
-            await asyncio.sleep(5)
+            await asyncio.sleep(2)
             await msg.delete()
             
         self.stop()
