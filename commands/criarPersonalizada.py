@@ -147,12 +147,12 @@ class CriarPerson(commands.Cog):
             color=discord.Color.blue()
         )
         embed.set_footer(text="Aguardando jogadores...")
-        embed.set_image(url="attachment://timbasQueue.png")
+        embed.set_image(url="attachment://timbasQueueGif.gif")
 
         await interaction.response.send_message(
             embed=embed,
             view=view,
-            file=discord.File('./images/timbasQueue.png')
+            file=discord.File('./images/timbasQueueGif.gif')
         )
         message = await interaction.original_response()
         view.original_message = message
