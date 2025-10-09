@@ -91,7 +91,7 @@ class CustomMatchView(BaseView):
             footer_text = "Pronto para começar!"
 
         embed.set_footer(text=footer_text)
-        embed.set_image(url="attachment://timbasQueueGif.gif")
+        embed.set_image(url="attachment://timbasQueue.png")
         
         if self.original_message:
             await self.original_message.edit(embed=embed, view=self)
