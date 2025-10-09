@@ -91,7 +91,6 @@ class CustomMatchView(BaseView):
             footer_text = "Pronto para começar!"
 
         embed.set_footer(text=footer_text)
-        embed.set_image(url="attachment://timbasQueueGif.gif")
         
         if self.original_message:
             await self.original_message.edit(embed=embed, view=self)
@@ -376,7 +375,6 @@ class WinningTeamSelect(ui.Select):
                 color=discord.Color.blue() # ou a cor original
             )
             final_embed.set_footer(text=f"Partida finalizada! Vencedor: Time {winner_label}")
-            final_embed.set_image(url="attachment://timbasQueue.png")
 
             # Edita a mensagem original com a nova embed
             original_message = self.parent_view.match_view.original_message

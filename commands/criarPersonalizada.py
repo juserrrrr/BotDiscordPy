@@ -147,7 +147,6 @@ class CriarPerson(commands.Cog):
             color=discord.Color.blue()
         )
         embed.set_footer(text="Aguardando jogadores...")
-        embed.set_image(url="attachment://timbasQueueGif.gif")
 
         await interaction.response.send_message(
             embed=embed,
