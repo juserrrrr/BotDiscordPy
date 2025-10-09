@@ -17,7 +17,7 @@ class Anunciar(commands.Cog):
     )
     embed_message.set_thumbnail(
         url=interaction.guild.icon.replace(format="png").url)
-    await interaction.response.send_message(embed=discord.Embed(description="Comando executado com sucesso!", color=interaction.guild.me.color), ephemeral=True, delete_after=4)
+    await interaction.response.send_message(embed=discord.Embed(description="Comando executado com sucesso!", color=interaction.guild.me.color), ephemeral=True, delete_after=5)
     await interaction.channel.send('||@everyone||')
     await interaction.channel.send(embed=embed_message)
 

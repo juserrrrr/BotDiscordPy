@@ -61,11 +61,14 @@ class LeagueVerificationModal(ui.Modal, title="Verificação de Conta do LoL"):
     )
 
     async def on_submit(self, interaction: discord.Interaction):
+
         await interaction.response.send_message("Buscando sua conta...", ephemeral=True)
 
         player_data = get_league_account_data(self.league_name.value)
         if not player_data:
             await interaction.edit_original_response(content="Conta não encontrada. Verifique o nick e a tag.")
+            final_message = await interaction.original_response()
+            await final_message.delete(delay=5)
             return
 
         lol = lolService()
@@ -88,9 +91,10 @@ class LeagueVerificationModal(ui.Modal, title="Verificação de Conta do LoL"):
         embed.set_thumbnail(url=verification_icon_url)
 
         view = VerificationView(lol, player_data, verification_icon_id)
+        # 3. Mensagem de prompt de verificação. Esta mensagem deve permanecer.
         await interaction.edit_original_response(content=None, embed=embed, view=view)
 
-        await view.wait()
+        await view.wait() 
         
         result_message = "Ocorreu um erro inesperado." # Mensagem padrão
         if view.result:
@@ -101,5 +105,6 @@ class LeagueVerificationModal(ui.Modal, title="Verificação de Conta do LoL"):
             color=discord.Color.green() if view.result and view.result.get('success') else discord.Color.red()
         )
         await interaction.edit_original_response(content=None, embed=result_embed, view=None)
-        await asyncio.sleep(5)
-        await interaction.delete_original_response()
+        
+        final_message = await interaction.original_response()
+        await final_message.delete(delay=5)

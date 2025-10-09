@@ -6,7 +6,7 @@ from services.timbasService import timbasService
 from services.lolService import lolService
 
 
-def generate_league_embed_text(blue_team: List[discord.User], red_team: List[discord.User], match_format: str, online_mode: str) -> str:
+def generate_league_embed_text(blue_team: List[discord.User], red_team: List[discord.User], match_format: str, online_mode: str, winner: str = None) -> str:
     """Gera o texto formatado para o embed da partida de League of Legends."""
     half = 5
 
@@ -14,12 +14,25 @@ def generate_league_embed_text(blue_team: List[discord.User], red_team: List[dis
     online_mode_str = f"Modo: {online_mode}"
     map_name = "[League of Legends] - Summoner's Rift"
 
+    blue_pad, red_pad = 18, 18
+    if winner == "BLUE":
+        blue_team_header = "TimeAzul 🏆"
+        red_team_header = "TimeVermelho"
+        blue_pad -= 2  # Compensa a largura do emoji
+    elif winner == "RED":
+        blue_team_header = "TimeAzul"
+        red_team_header = "🏆 TimeVermelho"
+        red_pad -= 2  # Compensa a largura do emoji
+    else:
+        blue_team_header = "TimeAzul"
+        red_team_header = "TimeVermelho"
+
     lines = [
         f"{'   -----':<21}{'-*-':^3}{'-----   ':>21}",
         f"{'':<9}{'Partida personalizada ⚔️':^27}{'':>9}",
         f"{'':<3} {map_name:^39} {'':>3}",
         f"{format_str:<20}{'':^5}{online_mode_str:>20}",
-        f"{'TimeAzul':<18}{'< EQP >':^9}{'TimeVermelho':>18}",
+        f"{blue_team_header:<{blue_pad}}{'< EQP >':^9}{red_team_header:>{red_pad}}",
         f"{'':<18}{'00     00':^9}{'':>18}",
         f"{'':<18}{'00:00':^9}{'':>18}",
     ]
@@ -53,7 +66,7 @@ def draw_teams(players: List[discord.User]) -> Tuple[List[discord.User], List[di
 async def move_team_to_channel(team: List[discord.User], channel: discord.VoiceChannel):
     """Move todos os jogadores de um time para um canal de voz específico."""
     for user in team:
-        if user.voice:
+        if isinstance(user, discord.Member) and user.voice:
             await user.move_to(channel)
 
 
@@ -71,18 +84,19 @@ def split_user_tag(name: str) -> List[str]:
 
 
 def is_user_registered(response) -> bool:
-    """Verifica se o usuário do Timbas tem uma conta do LoL associada."""
-    return response.status_code == 200 and response.json().get('leaguePuuid') is not None
+    """Verifica se o usuário do Timbas tem uma conta associada."""
+    return response.status_code == 200
 
 
-async def create_timbas_player(user: discord.User, league_data: dict):
+async def create_timbas_player(user: discord.User, league_data: dict = None):
     """Cria um novo jogador no serviço Timbas."""
     timbas = timbasService()
     payload = {
-        'name': league_data.get('name'),
         'discordId': str(user.id),
-        'leaguePuuid': str(league_data.get('puuid')),
+        'name': user.name, 
     }
+    if league_data:
+        payload['name'] = league_data.get('name')
     return timbas.createPlayer(payload)
 
 

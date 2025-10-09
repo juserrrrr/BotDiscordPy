@@ -28,3 +28,18 @@ class timbasService():
     url = f"{self.url}/discordServer/welcomeMsg/{serverId}"
     response = self.session.get(url, headers=self.header)
     return response
+
+  def createMatch(self, data: dict):
+    url = f"{self.url}/leagueMatch"
+    response = self.session.post(url, headers=self.header, json=data)
+    return response
+
+  def updateMatchWinner(self, match_id: int, data: dict):
+    url = f"{self.url}/leagueMatch/{match_id}"
+    response = self.session.patch(url, headers=self.header, json=data)
+    return response
+
+  def getRanking(self, serverId: str):
+    url = f"{self.url}/leaderboard/{serverId}"
+    response = self.session.get(url, headers=self.header)
+    return response
