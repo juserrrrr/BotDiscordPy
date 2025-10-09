@@ -75,7 +75,7 @@ class CustomMatchView(ui.View):
             footer_text = "Pronto para começar!"
 
         embed.set_footer(text=footer_text)
-        embed.set_image(url="attachment://timbasQueue.png")
+        embed.set_image(url="attachment://timbasQueueGif.gif")
         
         if deferred:
             await interaction.edit_original_response(embed=embed, view=self)
