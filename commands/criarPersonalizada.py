@@ -103,7 +103,6 @@ class CriarPerson(commands.Cog):
             red_channel=red_channel,
             online_mode=online_mode,
             match_format=match_format,
-            original_message=None,
             debug=debug
         )
 
@@ -154,8 +153,6 @@ class CriarPerson(commands.Cog):
             view=view,
             file=discord.File('./images/timbasQueueGif.gif')
         )
-        message = await interaction.original_response()
-        view.original_message = message
 
 async def setup(client):
     await client.add_cog(CriarPerson(client))
