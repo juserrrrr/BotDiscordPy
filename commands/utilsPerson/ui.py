@@ -13,7 +13,7 @@ import logging
 
 from base.BaseViews import BaseView
 
-from .helpers import draw_teams, move_team_to_channel, generate_league_embed_text, create_timbas_player, is_user_registered
+from .helpers import draw_teams, move_team_to_channel, generate_league_embed_text, create_timbas_player, is_user_registered, draw_teams_with_positions_and_champions
 from .lol import LeagueVerificationModal
 from services.timbasService import timbasService
 
@@ -31,13 +31,15 @@ class CustomMatchView(BaseView):
         self.match_format = match_format
         self.debug = debug
         self.confirmed_players: List[discord.User] = []
-        self.blue_team: List[discord.User] = []
-        self.red_team: List[discord.User] = []
+        self.blue_team = []  # Pode ser List[discord.User] ou List[dict]
+        self.red_team = []  # Pode ser List[discord.User] ou List[dict]
         self.started = False
         self.match_id = None
         self.blue_team_id = None
         self.red_team_id = None
         self.finishing = False
+        self.show_details = False  # Flag para mostrar posições e campeões
+        self.reroll_used = False  # Controla se já foi usado o re-sorteio
 
         self.update_buttons()
 
@@ -51,8 +53,11 @@ class CustomMatchView(BaseView):
             self.add_item(LeaveButton(self))
             self.add_item(PlayerCountButton(self.confirmed_players))
 
-            if self.match_format.value == 0:  # Aleatório
+            if self.match_format.value == 0 or self.match_format.value == 3:  # Aleatório ou Aleatório Completo
                 self.add_item(DrawButton(self))
+                # Adiciona botão de re-sortear apenas no modo Aleatório Completo, se já sorteou e ainda não re-sorteou
+                if self.match_format.value == 3 and self.blue_team and self.red_team and not self.reroll_used:
+                    self.add_item(RerollChampionsButton(self))
             elif self.match_format.value == 1:  # Livre
                 self.add_item(SwitchSideButton(self))
 
@@ -76,11 +81,12 @@ class CustomMatchView(BaseView):
             blue_team=blue_display,
             red_team=red_display,
             match_format=self.match_format.name,
-            online_mode=self.online_mode.name
+            online_mode=self.online_mode.name,
+            show_details=self.show_details
         )
 
         embed = discord.Embed(description=f"```{text}```", color=discord.Color.blue())
-        
+
         footer_text = "Aguardando jogadores..."
         if finished:
             footer_text = "Partida finalizada!"
@@ -91,7 +97,7 @@ class CustomMatchView(BaseView):
 
         embed.set_footer(text=footer_text)
         embed.set_image(url="attachment://timbasQueueGif.gif")
-        
+
         await interaction.message.edit(embed=embed, view=self)
 
 
@@ -174,7 +180,7 @@ class PlayerCountButton(ui.Button):
         super().__init__(label=f"{len(players)}/10", style=discord.ButtonStyle.grey, disabled=True)
 
 class DrawButton(ui.Button):
-    """Botão para sortear os times."""
+    """Botão para sortear os times (com ou sem posições e campeões)."""
     def __init__(self, parent_view: CustomMatchView):
         super().__init__(label="Sortear", style=discord.ButtonStyle.primary, emoji="🎲", disabled=len(parent_view.confirmed_players) < 10 or parent_view.started)
         self.parent_view = parent_view
@@ -187,10 +193,70 @@ class DrawButton(ui.Button):
             await message.delete()
             return
 
-        self.parent_view.blue_team, self.parent_view.red_team = draw_teams(self.parent_view.confirmed_players)
+        # Verifica o modo de sorteio
+        if self.parent_view.match_format.value == 3:  # Aleatório Completo
+            # Modo completo: Sorteia jogadores + posições + campeões
+            self.parent_view.blue_team, self.parent_view.red_team = draw_teams_with_positions_and_champions(self.parent_view.confirmed_players)
+            self.parent_view.show_details = True
+            message_text = "Times, posições e campeões sorteados!"
+        else:  # Aleatório normal (value == 0)
+            # Modo simples: Sorteia apenas os jogadores
+            self.parent_view.blue_team, self.parent_view.red_team = draw_teams(self.parent_view.confirmed_players)
+            self.parent_view.show_details = False
+            message_text = "Times sorteados!"
+
         self.parent_view.update_buttons()
         await self.parent_view.update_embed(interaction, started=False)
-        message = await interaction.followup.send("Times sorteados!", ephemeral=True)
+        message = await interaction.followup.send(message_text, ephemeral=True)
+        await asyncio.sleep(5)
+        await message.delete()
+
+class RerollChampionsButton(ui.Button):
+    """Botão para re-sortear apenas os campeões, mantendo times e posições."""
+    def __init__(self, parent_view: CustomMatchView):
+        super().__init__(label="Re-sortear Campeões", style=discord.ButtonStyle.secondary, emoji="🔄", disabled=parent_view.started or parent_view.reroll_used)
+        self.parent_view = parent_view
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        if interaction.user != self.parent_view.creator:
+            message = await interaction.followup.send("Apenas o criador pode re-sortear.", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
+            return
+
+        if self.parent_view.reroll_used:
+            message = await interaction.followup.send("O re-sorteio já foi usado!", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
+            return
+
+        # Re-sortear apenas os campeões, mantendo jogadores e posições
+        from .helpers import draw_champion_for_position
+        used_champions = set()
+
+        # Re-sortear campeões do time azul
+        for player_data in self.parent_view.blue_team:
+            if isinstance(player_data, dict):
+                position = player_data.get('position')
+                new_champion = draw_champion_for_position(position, used_champions)
+                used_champions.add(new_champion)
+                player_data['champion'] = new_champion
+
+        # Re-sortear campeões do time vermelho
+        for player_data in self.parent_view.red_team:
+            if isinstance(player_data, dict):
+                position = player_data.get('position')
+                new_champion = draw_champion_for_position(position, used_champions)
+                used_champions.add(new_champion)
+                player_data['champion'] = new_champion
+
+        # Marca que o re-sorteio foi usado
+        self.parent_view.reroll_used = True
+        self.parent_view.update_buttons()
+        await self.parent_view.update_embed(interaction, started=False)
+
+        message = await interaction.followup.send("Campeões re-sorteados! (1/1 re-sorteio usado)", ephemeral=True)
         await asyncio.sleep(5)
         await message.delete()
 
@@ -224,7 +290,8 @@ class StartButton(ui.Button):
             asyncio.create_task(delete_message_after_delay(message))
             return
 
-        if self.parent_view.match_format.value == 0 and not (self.parent_view.blue_team and self.parent_view.red_team):
+        # Verifica se precisa sortear os times primeiro (modos aleatórios)
+        if (self.parent_view.match_format.value == 0 or self.parent_view.match_format.value == 3) and not (self.parent_view.blue_team and self.parent_view.red_team):
             message = await interaction.followup.send("Sorteie os times primeiro.", ephemeral=True)
             asyncio.create_task(delete_message_after_delay(message))
             return
@@ -242,14 +309,18 @@ class StartButton(ui.Button):
             random_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=9))
             riot_match_id = f"TB_{random_string}"
 
+            # Extrai os usuários dos times (pode ser dict ou User)
+            blue_players = [p['user'] if isinstance(p, dict) else p for p in self.parent_view.blue_team]
+            red_players = [p['user'] if isinstance(p, dict) else p for p in self.parent_view.red_team]
+
             payload = {
                 "ServerDiscordId": str(interaction.guild.id),
                 "riotMatchId": riot_match_id,
                 "teamBlue": {
-                    "players": [{ "discordId": str(p.id) } for p in self.parent_view.blue_team]
+                    "players": [{ "discordId": str(p.id) } for p in blue_players]
                 },
                 "teamRed": {
-                    "players": [{ "discordId": str(p.id) } for p in self.parent_view.red_team]
+                    "players": [{ "discordId": str(p.id) } for p in red_players]
                 }
             }
             response = timbas.createMatch(payload)
@@ -269,8 +340,8 @@ class StartButton(ui.Button):
                 return
 
             if (self.parent_view.blue_channel and self.parent_view.red_channel) and not self.parent_view.debug:
-                await move_team_to_channel(self.parent_view.blue_team, self.parent_view.blue_channel)
-                await move_team_to_channel(self.parent_view.red_team, self.parent_view.red_channel)
+                await move_team_to_channel(blue_players, self.parent_view.blue_channel)
+                await move_team_to_channel(red_players, self.parent_view.red_channel)
         
         self.parent_view.started = True
         self.parent_view.update_buttons()
@@ -363,7 +434,8 @@ class WinningTeamSelect(ui.Select):
                 red_team=self.parent_view.match_view.red_team,
                 match_format=self.parent_view.match_view.match_format.name,
                 online_mode=self.parent_view.match_view.online_mode.name,
-                winner=winner_side
+                winner=winner_side,
+                show_details=self.parent_view.match_view.show_details
             )
             
             # Cria uma embed totalmente nova para evitar problemas de referência
@@ -427,12 +499,16 @@ class RejoinButton(ui.Button):
             await message.delete()
             return
 
-        if user in self.parent_view.blue_team:
+        # Extrai os usuários dos times (pode ser dict ou User)
+        blue_players = [p['user'] if isinstance(p, dict) else p for p in self.parent_view.blue_team]
+        red_players = [p['user'] if isinstance(p, dict) else p for p in self.parent_view.red_team]
+
+        if user in blue_players:
             await user.move_to(self.parent_view.blue_channel)
             message = await interaction.followup.send("Você foi movido para o canal do Time Azul.", ephemeral=True)
             await asyncio.sleep(5)
             await message.delete()
-        elif user in self.parent_view.red_team:
+        elif user in red_players:
             await user.move_to(self.parent_view.red_channel)
             message = await interaction.followup.send("Você foi movido para o canal do Time Vermelho.", ephemeral=True)
             await asyncio.sleep(5)

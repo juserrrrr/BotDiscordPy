@@ -67,12 +67,13 @@ class CriarPerson(commands.Cog):
         match_format=[
             app_commands.Choice(name="Aleatório", value=0),
             app_commands.Choice(name="Livre", value=1),
-            app_commands.Choice(name="Balanceado", value=2)
+            app_commands.Choice(name="Balanceado", value=2),
+            app_commands.Choice(name="Aleatório Completo", value=3)
         ]
     )
     @app_commands.describe(
         online_mode="Define se a partida terá registro de estatísticas (Online) ou não (Offline).",
-        match_format="Define como os times serão formados.",
+        match_format="Define como os times serão formados. 'Aleatório Completo' sorteia jogadores + posições + campeões.",
         debug="Ativa o modo de debug com 10 jogadores falsos (apenas para o dono do servidor)."
     )
     async def criar_personalizada(self, interaction: discord.Interaction, online_mode: app_commands.Choice[int], match_format: app_commands.Choice[int], debug: bool = False):
