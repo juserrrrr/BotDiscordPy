@@ -213,11 +213,18 @@ class CriarPerson(commands.Cog):
 
         # Responde ao usuário que criou o comando
         # Como sempre fazemos defer() ou manage_channels responde, sempre usamos followup
-        await interaction.followup.send(
+        message = await interaction.followup.send(
             f"Partida criada com sucesso! Veja em {text_channel.mention}",
             ephemeral=True,
-            delete_after=5
+            wait=True
         )
+        # Deleta a mensagem após 5 segundos
+        import asyncio
+        await asyncio.sleep(5)
+        try:
+            await message.delete()
+        except:
+            pass
 
 async def setup(client):
     await client.add_cog(CriarPerson(client))
