@@ -530,6 +530,9 @@ class WinningTeamSelect(ui.Select):
             await self.parent_view.original_message.edit(view=self.parent_view.match_view)
 
         if response_ok:
+            # Marca que o vencedor foi selecionado para evitar timeout interferir
+            self.parent_view.winner_selected = True
+
             winner_side = 'BLUE' if winner_team_id == self.parent_view.match_view.blue_team_id else 'RED'
             winner_label = "Azul" if winner_side == 'BLUE' else "Vermelho"
 
@@ -542,7 +545,7 @@ class WinningTeamSelect(ui.Select):
                 winner=winner_side,
                 show_details=self.parent_view.match_view.show_details
             )
-            
+
             # Cria uma embed totalmente nova para evitar problemas de referência
             final_embed = discord.Embed(
                 description=f"```{new_embed_text}```",
@@ -566,10 +569,12 @@ class FinishMatchView(BaseView):
         self.match_view = match_view
         self.original_message = original_message
         self.message: discord.WebhookMessage = None
+        self.winner_selected = False
         self.add_item(WinningTeamSelect(self))
 
     async def on_timeout(self):
-        if self.match_view.is_finished():
+        # Se já foi selecionado vencedor, não faz nada
+        if self.winner_selected or self.match_view.is_finished():
             return
 
         # Re-habilita o botão de finalizar na view principal
@@ -578,14 +583,19 @@ class FinishMatchView(BaseView):
             if isinstance(item, FinishButton):
                 item.disabled = False
                 break
-        
+
+        # APENAS restaura os botões na mensagem original, NÃO apaga nem muda o embed
         try:
             await self.original_message.edit(view=self.match_view)
-        except discord.errors.NotFound:
-            pass # A interação original pode ter expirado.
+        except (discord.errors.NotFound, discord.errors.HTTPException):
+            pass # Ignora erros de edição
 
+        # Apaga apenas a mensagem efêmera de seleção de vencedor
         if self.message:
-            await self.message.delete()
+            try:
+                await self.message.delete()
+            except:
+                pass
             
 
 class RejoinButton(ui.Button):
