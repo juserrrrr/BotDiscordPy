@@ -79,11 +79,11 @@ def generate_league_embed_text(blue_team, red_team, match_format: str, online_mo
         # Verifica se é dict (com posição e campeão) ou User simples
         if i < len(blue_team):
             if isinstance(blue_team[i], dict):
-                blue_player = blue_team[i]['user'].name[:6]
+                blue_player = blue_team[i]['user'].name[:12]
                 blue_position = blue_team[i].get('position', '')[:3] if show_details else ''
-                blue_champion = blue_team[i].get('champion', '')[:8] if show_details else ''
+                blue_champion = blue_team[i].get('champion', '')[:10] if show_details else ''
             else:
-                blue_player = blue_team[i].name[:6]
+                blue_player = blue_team[i].name[:12]
                 blue_position = ''
                 blue_champion = ''
         else:
@@ -93,11 +93,11 @@ def generate_league_embed_text(blue_team, red_team, match_format: str, online_mo
 
         if i < len(red_team):
             if isinstance(red_team[i], dict):
-                red_player = red_team[i]['user'].name[:6]
+                red_player = red_team[i]['user'].name[:12]
                 red_position = red_team[i].get('position', '')[:3] if show_details else ''
-                red_champion = red_team[i].get('champion', '')[:8] if show_details else ''
+                red_champion = red_team[i].get('champion', '')[:10] if show_details else ''
             else:
-                red_player = red_team[i].name[:6]
+                red_player = red_team[i].name[:12]
                 red_position = ''
                 red_champion = ''
         else:
@@ -119,19 +119,19 @@ def generate_league_embed_text(blue_team, red_team, match_format: str, online_mo
             red_pos_short = pos_abbrev.get(red_position, red_position[:3].upper())
 
             # Linha com jogador e posição
-            blue_str = f"[{blue_pos_short}] {blue_player:<6}"
-            red_str = f"{red_player:>6} [{red_pos_short}]"
-            lines.append(f"{blue_str:<18}{'':^9}{red_str:>18}")
+            blue_str = f"[{blue_pos_short}] {blue_player:<12}"
+            red_str = f"{red_player:>12} [{red_pos_short}]"
+            lines.append(f"{blue_str:<19}{' VS ':^7}{red_str:>19}")
 
             # Linha com campeão
             blue_champ_str = f"  → {blue_champion:<10}"
             red_champ_str = f"{red_champion:>10} ←"
-            lines.append(f"{blue_champ_str:<18}{'':^9}{red_champ_str:>18}")
+            lines.append(f"{blue_champ_str:<19}{'':^7}{red_champ_str:>19}")
         else:
-            # Formato antigo sem detalhes
-            blue_str = f"{blue_player:<7}{'000':>3}{'00/00/00':>9}"
-            red_str = f"{'00/00/00':<9}{'000':<3}{red_player:>7}"
-            lines.append(f"{blue_str}{'<00K>':^7}{red_str}")
+            # Formato simples - só nome com VS no meio
+            blue_str = f"{blue_player:<12}"
+            red_str = f"{red_player:>12}"
+            lines.append(f"{blue_str:<19}{' VS ':^7}{red_str:>19}")
 
     lines.append(f"{'':<5}{'(No momento, apenas visualização)':^35}{'':>5}")
     return "\n".join(lines)
