@@ -1,4 +1,6 @@
 import discord
+import json
+import os
 from random import randint
 from typing import List, Tuple
 
@@ -6,8 +8,32 @@ from services.timbasService import timbasService
 from services.lolService import lolService
 
 
-def generate_league_embed_text(blue_team: List[discord.User], red_team: List[discord.User], match_format: str, online_mode: str, winner: str = None) -> str:
-    """Gera o texto formatado para o embed da partida de League of Legends."""
+def load_champions_by_role():
+    """Carrega o dicionário de campeões por posição do arquivo JSON."""
+    json_path = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'champions_by_role.json')
+    try:
+        with open(json_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        # Fallback para um dicionário vazio se o arquivo não existir
+        return {
+            "Top": [],
+            "Jungle": [],
+            "Mid": [],
+            "ADC": [],
+            "Suporte": []
+        }
+
+
+# Carrega os campeões por posição do JSON
+CHAMPIONS_BY_ROLE = load_champions_by_role()
+
+
+def generate_league_embed_text(blue_team, red_team, match_format: str, online_mode: str, winner: str = None, show_details: bool = False) -> str:
+    """
+    Gera o texto formatado para o embed da partida de League of Legends.
+    blue_team e red_team podem ser List[discord.User] ou List[dict] com {user, position, champion}
+    """
     half = 5
 
     format_str = f"Formato: {match_format}"
@@ -38,12 +64,62 @@ def generate_league_embed_text(blue_team: List[discord.User], red_team: List[dis
     ]
 
     for i in range(half):
-        blue_player = blue_team[i].name[:6] if i < len(blue_team) else "Vazio"
-        red_player = red_team[i].name[:6] if i < len(red_team) else "Vazio"
+        # Verifica se é dict (com posição e campeão) ou User simples
+        if i < len(blue_team):
+            if isinstance(blue_team[i], dict):
+                blue_player = blue_team[i]['user'].name[:6]
+                blue_position = blue_team[i].get('position', '')[:3] if show_details else ''
+                blue_champion = blue_team[i].get('champion', '')[:8] if show_details else ''
+            else:
+                blue_player = blue_team[i].name[:6]
+                blue_position = ''
+                blue_champion = ''
+        else:
+            blue_player = "Vazio"
+            blue_position = ''
+            blue_champion = ''
 
-        blue_str = f"{blue_player:<7}{'000':>3}{'00/00/00':>9}"
-        red_str = f"{'00/00/00':<9}{'000':<3}{red_player:>7}"
-        lines.append(f"{blue_str}{'<00K>':^7}{red_str}")
+        if i < len(red_team):
+            if isinstance(red_team[i], dict):
+                red_player = red_team[i]['user'].name[:6]
+                red_position = red_team[i].get('position', '')[:3] if show_details else ''
+                red_champion = red_team[i].get('champion', '')[:8] if show_details else ''
+            else:
+                red_player = red_team[i].name[:6]
+                red_position = ''
+                red_champion = ''
+        else:
+            red_player = "Vazio"
+            red_position = ''
+            red_champion = ''
+
+        if show_details and (blue_position or blue_champion or red_position or red_champion):
+            # Formato com posição e campeão - mais legível
+            # Abreviações de posição
+            pos_abbrev = {
+                'Top': 'TOP',
+                'Jungle': 'JG',
+                'Mid': 'MID',
+                'ADC': 'ADC',
+                'Suporte': 'SUP'
+            }
+            blue_pos_short = pos_abbrev.get(blue_position, blue_position[:3].upper())
+            red_pos_short = pos_abbrev.get(red_position, red_position[:3].upper())
+
+            # Linha com jogador e posição
+            blue_str = f"[{blue_pos_short}] {blue_player:<6}"
+            red_str = f"{red_player:>6} [{red_pos_short}]"
+            lines.append(f"{blue_str:<18}{'':^9}{red_str:>18}")
+
+            # Linha com campeão
+            blue_champ_str = f"  → {blue_champion:<10}"
+            red_champ_str = f"{red_champion:>10} ←"
+            lines.append(f"{blue_champ_str:<18}{'':^9}{red_champ_str:>18}")
+        else:
+            # Formato antigo sem detalhes
+            blue_str = f"{blue_player:<7}{'000':>3}{'00/00/00':>9}"
+            red_str = f"{'00/00/00':<9}{'000':<3}{red_player:>7}"
+            lines.append(f"{blue_str}{'<00K>':^7}{red_str}")
 
     lines.append(f"{'':<5}{'(No momento, apenas visualização)':^35}{'':>5}")
     return "\n".join(lines)
@@ -121,7 +197,7 @@ def get_league_account_data(username: str):
     """Busca e retorna os dados de uma conta do League of Legends."""
     lol = lolService()
     name, tag = split_user_tag(username)
-    
+
     account_response = lol.getAccount(name, tag)
     if account_response.status_code != 200:
         return None
@@ -132,7 +208,7 @@ def get_league_account_data(username: str):
     summoner_response = lol.getSummonerByPuuid(puuid)
     if summoner_response.status_code != 200:
         return None
-    
+
     summoner_data = summoner_response.json()
     summoner_id = summoner_data.get('id')
 
@@ -140,3 +216,113 @@ def get_league_account_data(username: str):
     rank_data = rank_response.json() if rank_response.status_code == 200 else []
 
     return get_player_data_from_league(summoner_data, account_data, rank_data)
+
+
+def draw_positions() -> List[str]:
+    """Sorteia as 5 posições do League of Legends de forma aleatória."""
+    positions = ["Top", "Jungle", "Mid", "ADC", "Suporte"]
+    shuffled_positions = positions.copy()
+    from random import shuffle
+    shuffle(shuffled_positions)
+    return shuffled_positions
+
+
+def get_all_champions_list():
+    """Obtém a lista de todos os campeões do League of Legends."""
+    lol = lolService()
+    response = lol.getAllChampions()
+
+    if response.status_code == 200:
+        data = response.json()
+        champions = list(data['data'].keys())
+        return champions
+    return []
+
+
+def draw_random_champions(num_champions: int = 10) -> List[str]:
+    """Sorteia uma lista de campeões aleatórios."""
+    champions = get_all_champions_list()
+
+    if not champions:
+        return []
+
+    from random import sample
+    num_to_draw = min(num_champions, len(champions))
+    return sample(champions, num_to_draw)
+
+
+def draw_champion_for_position(position: str, used_champions: set) -> str:
+    """
+    Sorteia um campeão específico para a posição, evitando campeões já usados.
+    """
+    from random import choice
+
+    available_champions = [champ for champ in CHAMPIONS_BY_ROLE.get(position, []) if champ not in used_champions]
+
+    if not available_champions:
+        # Se todos os campeões da posição foram usados, busca em todas as posições
+        all_champions = []
+        for champs in CHAMPIONS_BY_ROLE.values():
+            all_champions.extend(champs)
+        available_champions = [champ for champ in all_champions if champ not in used_champions]
+
+    if available_champions:
+        return choice(available_champions)
+
+    return "Random"
+
+
+def draw_teams_with_positions_and_champions(players: List[discord.User]) -> Tuple[List[dict], List[dict]]:
+    """
+    Sorteia dois times com posições e campeões aleatórios específicos para cada posição.
+    Retorna: (blue_team, red_team)
+    Cada time é uma lista de dicionários com: {user, position, champion}
+    Os jogadores são ordenados na ordem: Top → Jungle → Mid → ADC → Suporte
+    """
+    players_copy = players.copy()
+    blue_team = []
+    red_team = []
+
+    # Sortear posições para ambos os times
+    blue_positions = draw_positions()
+    red_positions = draw_positions()
+
+    # Conjunto para rastrear campeões já sorteados (para evitar duplicatas)
+    used_champions = set()
+
+    position_index = 0
+
+    while players_copy:
+        # Time Azul
+        blue_player = players_copy.pop(randint(0, len(players_copy) - 1))
+        blue_position = blue_positions[position_index] if position_index < len(blue_positions) else 'Fill'
+        blue_champion = draw_champion_for_position(blue_position, used_champions)
+        used_champions.add(blue_champion)
+
+        blue_team.append({
+            'user': blue_player,
+            'position': blue_position,
+            'champion': blue_champion
+        })
+
+        # Time Vermelho
+        if players_copy:
+            red_player = players_copy.pop(randint(0, len(players_copy) - 1))
+            red_position = red_positions[position_index] if position_index < len(red_positions) else 'Fill'
+            red_champion = draw_champion_for_position(red_position, used_champions)
+            used_champions.add(red_champion)
+
+            red_team.append({
+                'user': red_player,
+                'position': red_position,
+                'champion': red_champion
+            })
+
+        position_index += 1
+
+    # Ordenar os times pela ordem das posições: Top → Jungle → Mid → ADC → Suporte
+    position_order = {"Top": 0, "Jungle": 1, "Mid": 2, "ADC": 3, "Suporte": 4}
+    blue_team.sort(key=lambda player: position_order.get(player['position'], 999))
+    red_team.sort(key=lambda player: position_order.get(player['position'], 999))
+
+    return blue_team, red_team
