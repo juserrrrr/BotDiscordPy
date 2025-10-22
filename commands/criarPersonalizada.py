@@ -38,6 +38,7 @@ class CriarPerson(commands.Cog):
         # Se tudo já existe, retorna os canais
         if not missing_voice_channels and not missing_text_channel:
             voice_channels = {name: discord.utils.get(guild.voice_channels, name=name) for name in required_voice_channels}
+            # Não precisa responder aqui, apenas retornar
             return True, voice_channels, existing_text_channel
 
         # Pergunta se deseja criar os canais faltantes
@@ -147,6 +148,10 @@ class CriarPerson(commands.Cog):
             debug=debug
         )
 
+        # Se ainda não respondeu (canais já existiam), defer antes de operações demoradas
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
+
         if debug:
             # Hardcoded Discord IDs provided by the user for debug mode
             default_discord_ids = [
@@ -197,16 +202,11 @@ class CriarPerson(commands.Cog):
         )
 
         # Responde ao usuário que criou o comando
-        if not interaction.response.is_done():
-            await interaction.response.send_message(
-                f"Partida criada com sucesso! Veja em {text_channel.mention}",
-                ephemeral=True
-            )
-        else:
-            await interaction.followup.send(
-                f"Partida criada com sucesso! Veja em {text_channel.mention}",
-                ephemeral=True
-            )
+        # Como sempre fazemos defer() ou manage_channels responde, sempre usamos followup
+        await interaction.followup.send(
+            f"Partida criada com sucesso! Veja em {text_channel.mention}",
+            ephemeral=True
+        )
 
 async def setup(client):
     await client.add_cog(CriarPerson(client))
