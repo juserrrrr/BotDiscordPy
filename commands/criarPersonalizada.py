@@ -181,6 +181,16 @@ class CriarPerson(commands.Cog):
                     confirmed_players.append(MockUser(name=f"TestPlayer{i+1}", id=int(p_id)))
             
             view.confirmed_players = confirmed_players
+
+            # Se for modo Aleatório Completo, já sorteia e marca 6 como prontos
+            if match_format.value == 3:
+                from commands.utilsPerson.helpers import draw_teams_with_positions_and_champions
+                view.blue_team, view.red_team = draw_teams_with_positions_and_champions(confirmed_players)
+                view.show_details = True
+                view.drawn = True
+                # Marca os primeiros 6 jogadores como prontos
+                view.ready_players = confirmed_players[:6]
+
             view.update_buttons()
 
         if not view.blue_team and not view.red_team:
