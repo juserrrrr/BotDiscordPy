@@ -387,18 +387,34 @@ class StartButton(ui.Button):
             random_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=9))
             riot_match_id = f"TB_{random_string}"
 
-            # Extrai os usuários dos times (pode ser dict ou User)
-            blue_players = [p['user'] if isinstance(p, dict) else p for p in self.parent_view.blue_team]
-            red_players = [p['user'] if isinstance(p, dict) else p for p in self.parent_view.red_team]
+            # Construir o payload baseado no tipo de partida
+            match_type = self.parent_view.match_format.value
+
+            # Função auxiliar para construir informações dos jogadores
+            def build_player_data(player_data):
+                if isinstance(player_data, dict):
+                    # Modo Aleatório Completo - inclui posição e campeão
+                    return {
+                        "discordId": str(player_data['user'].id),
+                        "position": player_data.get('position'),
+                        "champion": player_data.get('champion'),
+                        "rerolledChampion": player_data.get('rerolled', False)
+                    }
+                else:
+                    # Outros modos - apenas discordId
+                    return {
+                        "discordId": str(player_data.id)
+                    }
 
             payload = {
-                "ServerDiscordId": str(interaction.guild.id),
+                "serverDiscordId": str(interaction.guild.id),
                 "riotMatchId": riot_match_id,
+                "matchType": match_type,
                 "teamBlue": {
-                    "players": [{ "discordId": str(p.id) } for p in blue_players]
+                    "players": [build_player_data(p) for p in self.parent_view.blue_team]
                 },
                 "teamRed": {
-                    "players": [{ "discordId": str(p.id) } for p in red_players]
+                    "players": [build_player_data(p) for p in self.parent_view.red_team]
                 }
             }
             response = timbas.createMatch(payload)
@@ -418,8 +434,11 @@ class StartButton(ui.Button):
                 return
 
             if (self.parent_view.blue_channel and self.parent_view.red_channel) and not self.parent_view.debug:
-                await move_team_to_channel(blue_players, self.parent_view.blue_channel)
-                await move_team_to_channel(red_players, self.parent_view.red_channel)
+                # Extrai os usuários dos times (pode ser dict ou User)
+                blue_users = [p['user'] if isinstance(p, dict) else p for p in self.parent_view.blue_team]
+                red_users = [p['user'] if isinstance(p, dict) else p for p in self.parent_view.red_team]
+                await move_team_to_channel(blue_users, self.parent_view.blue_channel)
+                await move_team_to_channel(red_users, self.parent_view.red_channel)
         
         self.parent_view.started = True
         self.parent_view.update_buttons()
