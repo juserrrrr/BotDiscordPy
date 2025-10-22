@@ -42,6 +42,7 @@ class CustomMatchView(BaseView):
         self.reroll_used = False  # Controla se já foi usado o re-sorteio
         self.drawn = False  # Flag para controlar se já foi sorteado (Aleatório Completo)
         self.ready_players: List[discord.User] = []  # Jogadores prontos (Aleatório Completo)
+        self.original_voice_channels = {}  # Armazena o canal de voz original de cada jogador
 
         self.update_buttons()
 
@@ -165,7 +166,10 @@ class JoinButton(ui.Button):
 
                 if not confirm_view.result:
                     return
-                
+
+        # Armazena o canal de voz original do jogador antes de movê-lo
+        self.parent_view.original_voice_channels[user.id] = user.voice.channel
+
         await user.move_to(self.parent_view.waiting_channel)
         self.parent_view.confirmed_players.append(user)
         self.parent_view.update_buttons()
@@ -182,6 +186,14 @@ class LeaveButton(ui.Button):
 
         if user in self.parent_view.confirmed_players:
             self.parent_view.confirmed_players.remove(user)
+
+            # Move o jogador de volta para o canal original se ainda estiver em voz
+            if user.voice and user.id in self.parent_view.original_voice_channels:
+                original_channel = self.parent_view.original_voice_channels[user.id]
+                await user.move_to(original_channel)
+                # Remove do dicionário
+                del self.parent_view.original_voice_channels[user.id]
+
             self.parent_view.update_buttons()
             await self.parent_view.update_embed(interaction)
             message = await interaction.followup.send("Você saiu da lista de jogadores.", ephemeral=True)
@@ -467,6 +479,14 @@ class FinishButton(ui.Button):
             return
 
         if self.parent_view.online_mode.value == 0: # Offline
+            # Move todos os jogadores de volta aos canais originais
+            if not self.parent_view.debug:
+                for player in self.parent_view.confirmed_players:
+                    # Verifica se o jogador ainda está em voz e se temos o canal original dele
+                    if player.voice and player.id in self.parent_view.original_voice_channels:
+                        original_channel = self.parent_view.original_voice_channels[player.id]
+                        await player.move_to(original_channel)
+
             await self.parent_view.update_embed(interaction, finished=True)
             self.parent_view.stop()
             return
@@ -552,6 +572,14 @@ class WinningTeamSelect(ui.Select):
             )
             final_embed.set_footer(text=f"Partida finalizada! Vencedor: Time {winner_label}")
             final_embed.set_image(url="attachment://timbasQueueGif.gif")
+
+            # Move todos os jogadores de volta aos canais originais
+            if not self.parent_view.match_view.debug:
+                for player in self.parent_view.match_view.confirmed_players:
+                    # Verifica se o jogador ainda está em voz e se temos o canal original dele
+                    if player.voice and player.id in self.parent_view.match_view.original_voice_channels:
+                        original_channel = self.parent_view.match_view.original_voice_channels[player.id]
+                        await player.move_to(original_channel)
 
             # Edita a mensagem original com a nova embed
             await self.parent_view.original_message.edit(embed=final_embed, view=None)
