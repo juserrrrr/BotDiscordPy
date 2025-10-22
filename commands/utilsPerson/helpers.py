@@ -277,6 +277,7 @@ def draw_teams_with_positions_and_champions(players: List[discord.User]) -> Tupl
     Sorteia dois times com posições e campeões aleatórios específicos para cada posição.
     Retorna: (blue_team, red_team)
     Cada time é uma lista de dicionários com: {user, position, champion}
+    Os jogadores são ordenados na ordem: Top → Jungle → Mid → ADC → Suporte
     """
     players_copy = players.copy()
     blue_team = []
@@ -318,5 +319,10 @@ def draw_teams_with_positions_and_champions(players: List[discord.User]) -> Tupl
             })
 
         position_index += 1
+
+    # Ordenar os times pela ordem das posições: Top → Jungle → Mid → ADC → Suporte
+    position_order = {"Top": 0, "Jungle": 1, "Mid": 2, "ADC": 3, "Suporte": 4}
+    blue_team.sort(key=lambda player: position_order.get(player['position'], 999))
+    red_team.sort(key=lambda player: position_order.get(player['position'], 999))
 
     return blue_team, red_team
