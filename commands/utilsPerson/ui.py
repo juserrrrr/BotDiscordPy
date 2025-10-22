@@ -220,6 +220,11 @@ class DrawButton(ui.Button):
             self.parent_view.blue_team, self.parent_view.red_team = draw_teams_with_positions_and_champions(self.parent_view.confirmed_players)
             self.parent_view.show_details = True
             self.parent_view.drawn = True  # Marca como sorteado
+
+            # No modo debug, marca 6 jogadores como prontos automaticamente
+            if self.parent_view.debug:
+                self.parent_view.ready_players = self.parent_view.confirmed_players[:6]
+
             message_text = "Times, posições e campeões sorteados! Agora marque-se como pronto."
         else:  # Aleatório normal (value == 0)
             # Modo simples: Sorteia apenas os jogadores
