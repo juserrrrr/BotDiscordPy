@@ -415,7 +415,7 @@ class StartButton(ui.Button):
                     }
 
             payload = {
-                "serverDiscordId": str(interaction.guild.id),
+                "ServerDiscordId": str(interaction.guild.id),
                 "riotMatchId": riot_match_id,
                 "matchType": match_type,
                 "teamBlue": {
