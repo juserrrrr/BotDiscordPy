@@ -71,8 +71,6 @@ def generate_league_embed_text(blue_team, red_team, match_format: str, online_mo
         f"{'':<3} {map_name:^39} {'':>3}",
         f"{format_str:<22}{'':^1}{online_mode_str:>22}",
         f"{blue_team_header:<{blue_pad}}{'< EQP >':^9}{red_team_header:>{red_pad}}",
-        f"{'':<18}{'00     00':^9}{'':>18}",
-        f"{'':<18}{'00:00':^9}{'':>18}",
     ]
 
     for i in range(half):
@@ -81,7 +79,7 @@ def generate_league_embed_text(blue_team, red_team, match_format: str, online_mo
             if isinstance(blue_team[i], dict):
                 blue_player = blue_team[i]['user'].name[:12]
                 blue_position = blue_team[i].get('position', '')[:3] if show_details else ''
-                blue_champion = blue_team[i].get('champion', '')[:10] if show_details else ''
+                blue_champion = blue_team[i].get('champion', '')[:14] if show_details else ''
             else:
                 blue_player = blue_team[i].name[:12]
                 blue_position = ''
@@ -95,7 +93,7 @@ def generate_league_embed_text(blue_team, red_team, match_format: str, online_mo
             if isinstance(red_team[i], dict):
                 red_player = red_team[i]['user'].name[:12]
                 red_position = red_team[i].get('position', '')[:3] if show_details else ''
-                red_champion = red_team[i].get('champion', '')[:10] if show_details else ''
+                red_champion = red_team[i].get('champion', '')[:14] if show_details else ''
             else:
                 red_player = red_team[i].name[:12]
                 red_position = ''
@@ -123,10 +121,10 @@ def generate_league_embed_text(blue_team, red_team, match_format: str, online_mo
             red_str = f"{red_player:>12} [{red_pos_short}]"
             lines.append(f"{blue_str:<19}{' VS ':^7}{red_str:>19}")
 
-            # Linha com campeão
-            blue_champ_str = f"  → {blue_champion:<10}"
-            red_champ_str = f"{red_champion:>10} ←"
-            lines.append(f"{blue_champ_str:<19}{'':^7}{red_champ_str:>19}")
+            # Linha com campeão com VS no meio
+            blue_champ_str = f"→ {blue_champion:<14}"
+            red_champ_str = f"{red_champion:>14} ←"
+            lines.append(f"{blue_champ_str:<17}{' VS ':^11}{red_champ_str:>17}")
         else:
             # Formato simples - só nome com VS no meio
             blue_str = f"{blue_player:<12}"

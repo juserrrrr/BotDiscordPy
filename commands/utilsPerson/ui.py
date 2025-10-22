@@ -194,7 +194,7 @@ class LeaveButton(ui.Button):
 
 class PlayerCountButton(ui.Button):
     def __init__(self, players: List[discord.User]):
-        super().__init__(label=f"{len(players)}/10", style=discord.ButtonStyle.grey, disabled=True)
+        super().__init__(label=f"Confirmados: {len(players)}/10", style=discord.ButtonStyle.grey, disabled=True)
 
 class DrawButton(ui.Button):
     """Botão para sortear os times (com ou sem posições e campeões)."""
@@ -246,16 +246,15 @@ class ReadyButton(ui.Button):
             return
 
         if user in self.parent_view.ready_players:
-            # Remove do pronto
-            self.parent_view.ready_players.remove(user)
-            message = await interaction.followup.send("Você não está mais pronto.", ephemeral=True)
+            # Já está pronto - não pode desconfirmar
+            message = await interaction.followup.send("Você já está confirmado como pronto!", ephemeral=True)
         else:
-            # Adiciona ao pronto
+            # Adiciona ao pronto (confirmação)
             self.parent_view.ready_players.append(user)
-            message = await interaction.followup.send(f"Você está pronto! ({len(self.parent_view.ready_players)}/10)", ephemeral=True)
+            message = await interaction.followup.send(f"Você está confirmado e pronto! ({len(self.parent_view.ready_players)}/10)", ephemeral=True)
+            self.parent_view.update_buttons()
+            await self.parent_view.update_embed(interaction, started=False)
 
-        self.parent_view.update_buttons()
-        await self.parent_view.update_embed(interaction, started=False)
         await asyncio.sleep(5)
         await message.delete()
 
