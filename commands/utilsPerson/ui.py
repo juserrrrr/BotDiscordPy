@@ -40,6 +40,8 @@ class CustomMatchView(BaseView):
         self.finishing = False
         self.show_details = False  # Flag para mostrar posições e campeões
         self.reroll_used = False  # Controla se já foi usado o re-sorteio
+        self.drawn = False  # Flag para controlar se já foi sorteado (Aleatório Completo)
+        self.ready_players: List[discord.User] = []  # Jogadores prontos (Aleatório Completo)
 
         self.update_buttons()
 
@@ -49,20 +51,35 @@ class CustomMatchView(BaseView):
 
         if not self.started:
             # --- State: Before match starts ---
-            self.add_item(JoinButton(self))
-            self.add_item(LeaveButton(self))
-            self.add_item(PlayerCountButton(self.confirmed_players))
 
-            if self.match_format.value == 0 or self.match_format.value == 3:  # Aleatório ou Aleatório Completo
-                self.add_item(DrawButton(self))
-                # Adiciona botão de re-sortear apenas no modo Aleatório Completo, se já sorteou e ainda não re-sorteou
-                if self.match_format.value == 3 and self.blue_team and self.red_team and not self.reroll_used:
-                    self.add_item(RerollChampionsButton(self))
-            elif self.match_format.value == 1:  # Livre
-                self.add_item(SwitchSideButton(self))
+            # Modo Aleatório Completo tem fluxo especial
+            if self.match_format.value == 3:  # Aleatório Completo
+                if not self.drawn:
+                    # Antes do sorteio: mostrar Entrar, Sair, Sortear
+                    self.add_item(JoinButton(self))
+                    self.add_item(LeaveButton(self))
+                    self.add_item(PlayerCountButton(self.confirmed_players))
+                    self.add_item(DrawButton(self))
+                else:
+                    # Após sorteio: esconder Entrar/Sair/Sortear, mostrar Pronto e Re-sortear
+                    self.add_item(PlayerCountButton(self.confirmed_players))
+                    self.add_item(ReadyButton(self))
+                    self.add_item(RerollIndividualChampionButton(self))
+                    self.add_item(StartButton(self))
+                    self.add_item(FinishButton(self))
+            else:
+                # Outros modos mantêm comportamento original
+                self.add_item(JoinButton(self))
+                self.add_item(LeaveButton(self))
+                self.add_item(PlayerCountButton(self.confirmed_players))
 
-            self.add_item(StartButton(self))
-            self.add_item(FinishButton(self))
+                if self.match_format.value == 0:  # Aleatório
+                    self.add_item(DrawButton(self))
+                elif self.match_format.value == 1:  # Livre
+                    self.add_item(SwitchSideButton(self))
+
+                self.add_item(StartButton(self))
+                self.add_item(FinishButton(self))
         else:
             # --- State: After match starts ---
             self.add_item(RejoinButton(self))
@@ -198,7 +215,8 @@ class DrawButton(ui.Button):
             # Modo completo: Sorteia jogadores + posições + campeões
             self.parent_view.blue_team, self.parent_view.red_team = draw_teams_with_positions_and_champions(self.parent_view.confirmed_players)
             self.parent_view.show_details = True
-            message_text = "Times, posições e campeões sorteados!"
+            self.parent_view.drawn = True  # Marca como sorteado
+            message_text = "Times, posições e campeões sorteados! Agora marque-se como pronto."
         else:  # Aleatório normal (value == 0)
             # Modo simples: Sorteia apenas os jogadores
             self.parent_view.blue_team, self.parent_view.red_team = draw_teams(self.parent_view.confirmed_players)
@@ -211,52 +229,98 @@ class DrawButton(ui.Button):
         await asyncio.sleep(5)
         await message.delete()
 
-class RerollChampionsButton(ui.Button):
-    """Botão para re-sortear apenas os campeões, mantendo times e posições."""
+class ReadyButton(ui.Button):
+    """Botão para marcar-se como pronto no modo Aleatório Completo."""
     def __init__(self, parent_view: CustomMatchView):
-        super().__init__(label="Re-sortear Campeões", style=discord.ButtonStyle.secondary, emoji="🔄", disabled=parent_view.started or parent_view.reroll_used)
+        super().__init__(label="Pronto", style=discord.ButtonStyle.success, emoji="✅", disabled=parent_view.started)
         self.parent_view = parent_view
 
     async def callback(self, interaction: discord.Interaction):
+        user = interaction.user
         await interaction.response.defer(ephemeral=True)
-        if interaction.user != self.parent_view.creator:
-            message = await interaction.followup.send("Apenas o criador pode re-sortear.", ephemeral=True)
+
+        if user not in self.parent_view.confirmed_players:
+            message = await interaction.followup.send("Você não está na partida.", ephemeral=True)
             await asyncio.sleep(5)
             await message.delete()
             return
 
-        if self.parent_view.reroll_used:
-            message = await interaction.followup.send("O re-sorteio já foi usado!", ephemeral=True)
+        if user in self.parent_view.ready_players:
+            # Remove do pronto
+            self.parent_view.ready_players.remove(user)
+            message = await interaction.followup.send("Você não está mais pronto.", ephemeral=True)
+        else:
+            # Adiciona ao pronto
+            self.parent_view.ready_players.append(user)
+            message = await interaction.followup.send(f"Você está pronto! ({len(self.parent_view.ready_players)}/10)", ephemeral=True)
+
+        self.parent_view.update_buttons()
+        await self.parent_view.update_embed(interaction, started=False)
+        await asyncio.sleep(5)
+        await message.delete()
+
+
+class RerollIndividualChampionButton(ui.Button):
+    """Botão para cada jogador re-sortear seu próprio campeão (sem voltar atrás)."""
+    def __init__(self, parent_view: CustomMatchView):
+        super().__init__(label="Re-sortear Meu Campeão", style=discord.ButtonStyle.secondary, emoji="🔄", disabled=parent_view.started)
+        self.parent_view = parent_view
+
+    async def callback(self, interaction: discord.Interaction):
+        user = interaction.user
+        await interaction.response.defer(ephemeral=True)
+
+        if user not in self.parent_view.confirmed_players:
+            message = await interaction.followup.send("Você não está na partida.", ephemeral=True)
             await asyncio.sleep(5)
             await message.delete()
             return
 
-        # Re-sortear apenas os campeões, mantendo jogadores e posições
+        # Encontra o jogador nos times
         from .helpers import draw_champion_for_position
+        player_data = None
+
+        for p in self.parent_view.blue_team:
+            if isinstance(p, dict) and p['user'] == user:
+                player_data = p
+                break
+
+        if not player_data:
+            for p in self.parent_view.red_team:
+                if isinstance(p, dict) and p['user'] == user:
+                    player_data = p
+                    break
+
+        if not player_data:
+            message = await interaction.followup.send("Erro ao encontrar seus dados.", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
+            return
+
+        # Verifica se já re-sorteou
+        if player_data.get('rerolled', False):
+            message = await interaction.followup.send("Você já re-sorteou seu campeão!", ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
+            return
+
+        # Coleta todos os campeões já usados
         used_champions = set()
+        for p in self.parent_view.blue_team + self.parent_view.red_team:
+            if isinstance(p, dict) and p != player_data:
+                used_champions.add(p.get('champion'))
 
-        # Re-sortear campeões do time azul
-        for player_data in self.parent_view.blue_team:
-            if isinstance(player_data, dict):
-                position = player_data.get('position')
-                new_champion = draw_champion_for_position(position, used_champions)
-                used_champions.add(new_champion)
-                player_data['champion'] = new_champion
+        # Re-sorteia o campeão
+        position = player_data.get('position')
+        new_champion = draw_champion_for_position(position, used_champions)
+        old_champion = player_data.get('champion')
+        player_data['champion'] = new_champion
+        player_data['rerolled'] = True  # Marca que já re-sorteou
 
-        # Re-sortear campeões do time vermelho
-        for player_data in self.parent_view.red_team:
-            if isinstance(player_data, dict):
-                position = player_data.get('position')
-                new_champion = draw_champion_for_position(position, used_champions)
-                used_champions.add(new_champion)
-                player_data['champion'] = new_champion
-
-        # Marca que o re-sorteio foi usado
-        self.parent_view.reroll_used = True
         self.parent_view.update_buttons()
         await self.parent_view.update_embed(interaction, started=False)
 
-        message = await interaction.followup.send("Campeões re-sorteados! (1/1 re-sorteio usado)", ephemeral=True)
+        message = await interaction.followup.send(f"Campeão re-sorteado! {old_champion} → {new_champion} (não pode voltar atrás)", ephemeral=True)
         await asyncio.sleep(5)
         await message.delete()
 
@@ -295,7 +359,21 @@ class StartButton(ui.Button):
             message = await interaction.followup.send("Sorteie os times primeiro.", ephemeral=True)
             asyncio.create_task(delete_message_after_delay(message))
             return
-        
+
+        # Verifica se a maioria está pronta no modo Aleatório Completo
+        if self.parent_view.match_format.value == 3:
+            ready_count = len(self.parent_view.ready_players)
+            total_players = len(self.parent_view.confirmed_players)
+            required_ready = (total_players // 2) + 1  # Maioria simples
+
+            if ready_count < required_ready:
+                message = await interaction.followup.send(
+                    f"Aguarde a maioria estar pronta para iniciar. ({ready_count}/{required_ready} prontos necessários)",
+                    ephemeral=True
+                )
+                asyncio.create_task(delete_message_after_delay(message))
+                return
+
         if self.parent_view.match_format.value == 1: # Modo Livre
             half = len(self.parent_view.confirmed_players) // 2
             self.parent_view.blue_team = self.parent_view.confirmed_players[:half]
