@@ -133,21 +133,19 @@ def generate_league_embed_text(blue_team, red_team, match_format: str, online_mo
             red_str = f"{red_player:>12}"
             lines.append(f"{blue_str:<19}{' VS ':^7}{red_str:>19}")
 
-    lines.append(f"{'':<5}{'(No momento, apenas visualização)':^35}{'':>5}")
     return "\n".join(lines)
 
 
 def draw_teams(players: List[discord.User]) -> Tuple[List[discord.User], List[discord.User]]:
-    """Sorteia dois times a partir de uma lista de jogadores."""
+    """Sorteia dois times a partir de uma lista de jogadores usando shuffle."""
+    from random import shuffle
     players_copy = players.copy()
-    blue_team = []
-    red_team = []
-    while players_copy:
-        blue_player = players_copy.pop(randint(0, len(players_copy) - 1))
-        blue_team.append(blue_player)
-        if players_copy:
-            red_player = players_copy.pop(randint(0, len(players_copy) - 1))
-            red_team.append(red_player)
+    shuffle(players_copy)
+
+    half = len(players_copy) // 2
+    blue_team = players_copy[:half]
+    red_team = players_copy[half:]
+
     return blue_team, red_team
 
 
@@ -291,9 +289,15 @@ def draw_teams_with_positions_and_champions(players: List[discord.User]) -> Tupl
     Cada time é uma lista de dicionários com: {user, position, champion}
     Os jogadores são ordenados na ordem: Top → Jungle → Mid → ADC → Suporte
     """
+    from random import shuffle
+
+    # Embaralhar jogadores e dividir em dois times
     players_copy = players.copy()
-    blue_team = []
-    red_team = []
+    shuffle(players_copy)
+
+    half = len(players_copy) // 2
+    blue_players = players_copy[:half]
+    red_players = players_copy[half:]
 
     # Sortear posições para ambos os times
     blue_positions = draw_positions()
@@ -302,35 +306,31 @@ def draw_teams_with_positions_and_champions(players: List[discord.User]) -> Tupl
     # Conjunto para rastrear campeões já sorteados (para evitar duplicatas)
     used_champions = set()
 
-    position_index = 0
-
-    while players_copy:
-        # Time Azul
-        blue_player = players_copy.pop(randint(0, len(players_copy) - 1))
-        blue_position = blue_positions[position_index] if position_index < len(blue_positions) else 'Fill'
-        blue_champion = draw_champion_for_position(blue_position, used_champions)
-        used_champions.add(blue_champion)
+    # Criar time azul com posições e campeões
+    blue_team = []
+    for i, player in enumerate(blue_players):
+        position = blue_positions[i] if i < len(blue_positions) else 'Fill'
+        champion = draw_champion_for_position(position, used_champions)
+        used_champions.add(champion)
 
         blue_team.append({
-            'user': blue_player,
-            'position': blue_position,
-            'champion': blue_champion
+            'user': player,
+            'position': position,
+            'champion': champion
         })
 
-        # Time Vermelho
-        if players_copy:
-            red_player = players_copy.pop(randint(0, len(players_copy) - 1))
-            red_position = red_positions[position_index] if position_index < len(red_positions) else 'Fill'
-            red_champion = draw_champion_for_position(red_position, used_champions)
-            used_champions.add(red_champion)
+    # Criar time vermelho com posições e campeões
+    red_team = []
+    for i, player in enumerate(red_players):
+        position = red_positions[i] if i < len(red_positions) else 'Fill'
+        champion = draw_champion_for_position(position, used_champions)
+        used_champions.add(champion)
 
-            red_team.append({
-                'user': red_player,
-                'position': red_position,
-                'champion': red_champion
-            })
-
-        position_index += 1
+        red_team.append({
+            'user': player,
+            'position': position,
+            'champion': champion
+        })
 
     # Ordenar os times pela ordem das posições: Top → Jungle → Mid → ADC → Suporte
     position_order = {"Top": 0, "Jungle": 1, "Mid": 2, "ADC": 3, "Suporte": 4}
