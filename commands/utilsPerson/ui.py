@@ -490,8 +490,7 @@ class FinishButton(ui.Button):
 
         # Envia a view de finalização como resposta efêmera à interação atual
         finish_view = FinishMatchView(self.parent_view, interaction.message)
-        await interaction.followup.send("Quem venceu a partida?", view=finish_view, ephemeral=True)
-        finish_view.message = await interaction.original_response()
+        finish_view.message = await interaction.followup.send("Quem venceu a partida?", view=finish_view, ephemeral=True, wait=True)
 
 
 class WinningTeamSelect(ui.Select):
@@ -577,18 +576,24 @@ class FinishMatchView(BaseView):
         if self.winner_selected or self.match_view.is_finished():
             return
 
-        # Re-habilita o botão de finalizar na view principal
+        # Re-habilita o botão de finalizar internamente
         self.match_view.finishing = False
         for item in self.match_view.children:
             if isinstance(item, FinishButton):
                 item.disabled = False
                 break
 
-        # APENAS restaura os botões na mensagem original, NÃO apaga nem muda o embed
+        # Tenta restaurar os botões na mensagem original buscando ela novamente
         try:
-            await self.original_message.edit(view=self.match_view)
-        except (discord.errors.NotFound, discord.errors.HTTPException):
-            pass # Ignora erros de edição
+            # Busca a mensagem novamente pelo ID para garantir que existe
+            channel = self.original_message.channel
+            message = await channel.fetch_message(self.original_message.id)
+            # Atualiza APENAS a view, mantendo embed e conteúdo
+            await message.edit(view=self.match_view)
+        except:
+            # Se falhar por qualquer motivo, não faz nada
+            # A mensagem original permanece intacta
+            pass
 
         # Apaga apenas a mensagem efêmera de seleção de vencedor
         if self.message:
