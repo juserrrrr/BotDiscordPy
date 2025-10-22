@@ -1,0 +1,38 @@
+{
+  "Top": [
+    "Aatrox", "Akali", "Ambessa", "Camille", "Chogath", "Darius", "DrMundo", "Fiora",
+    "Gangplank", "Garen", "Gnar", "Gragas", "Gwen", "Illaoi", "Irelia", "Jax",
+    "Jayce", "Kayle", "Kennen", "Kled", "KSante", "Malphite", "Mordekaiser", "Nasus",
+    "Olaf", "Ornn", "Pantheon", "Poppy", "Quinn", "Renekton", "Riven", "Rumble",
+    "Sejuani", "Sett", "Shen", "Singed", "Sion", "Sylas", "Tahmkench", "Teemo",
+    "Trundle", "Tryndamere", "Urgot", "Vayne", "Vladimir", "Volibear", "Warwick",
+    "Wukong", "Yasuo", "Yone", "Yorick", "Zac"
+  ],
+  "Jungle": [
+    "Amumu", "Belveth", "Brand", "Briar", "Ekko", "Elise", "Evelynn", "Fiddlesticks",
+    "Gragas", "Graves", "Hecarim", "Ivern", "JarvanIV", "Jax", "Kayn", "Khazix",
+    "Kindred", "LeeSin", "Lillia", "Maokai", "MasterYi", "Nidalee", "Nocturne",
+    "Nunu", "Olaf", "Poppy", "RekSai", "Rengar", "Sejuani", "Shaco", "Shyvana",
+    "Skarner", "Taliyah", "Trundle", "Udyr", "Vi", "Viego", "Volibear", "Warwick",
+    "Wukong", "XinZhao", "Zac"
+  ],
+  "Mid": [
+    "Ahri", "Akali", "Akshan", "Anivia", "Annie", "Aurelionsol", "Azir", "Brand",
+    "Cassiopeia", "Corki", "Diana", "Ekko", "Fizz", "Galio", "Heimerdinger", "Hwei",
+    "Irelia", "Jayce", "Kassadin", "Katarina", "LeBlanc", "Lissandra", "Lux",
+    "Malzahar", "Mel", "Naafiri", "Neeko", "Orianna", "Qiyana", "Rumble", "Ryze", "Sylas",
+    "Syndra", "Taliyah", "Talon", "TwistedFate", "Veigar", "Vex", "Viktor", "Vladimir",
+    "Xerath", "Yasuo", "Yone", "Zed", "Ziggs", "Zoe"
+  ],
+  "ADC": [
+    "Aphelios", "Ashe", "Caitlyn", "Draven", "Ezreal", "Jhin", "Jinx", "Kaisa",
+    "Kalista", "Kogmaw", "Lucian", "MissFortune", "Nilah", "Samira", "Sivir",
+    "Smolder", "Tristana", "Twitch", "Varus", "Vayne", "Xayah", "Zeri", "Ziggs"
+  ],
+  "Suporte": [
+    "Alistar", "Bard", "Blitzcrank", "Braum", "Janna", "Karma", "Lulu", "Lux",
+    "Mel", "Milio", "Morgana", "Nami", "Nautilus", "Pyke", "Rakan", "Rell", "Renata",
+    "Senna", "Seraphine", "Sona", "Soraka", "Swain", "Tahmkench", "Taric",
+    "Thresh", "Xerath", "Yuumi", "Yunara", "Zilean", "Zyra"
+  ]
+}

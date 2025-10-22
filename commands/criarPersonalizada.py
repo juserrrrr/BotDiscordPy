@@ -23,19 +23,28 @@ class CriarPerson(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
 
-    async def manage_voice_channels(self, interaction: discord.Interaction):
-        """Verifica e cria os canais de voz necessários para a partida."""
+    async def manage_channels(self, interaction: discord.Interaction):
+        """Verifica e cria os canais de voz e texto necessários para a partida."""
         guild = interaction.guild
-        required_channels = {"| 🕘 | AGUARDANDO", "LADO [ |🔵| ]", "LADO [ |🔴| ]"}
-        existing_channels = {channel.name for channel in guild.voice_channels}
-        missing_channels = required_channels - existing_channels
+        required_voice_channels = {"| 🕘 | AGUARDANDO", "LADO [ |🔵| ]", "LADO [ |🔴| ]"}
+        required_text_channel = "custom_game"
 
-        if not missing_channels:
-            return True, {name: discord.utils.get(guild.voice_channels, name=name) for name in required_channels}
+        existing_voice_channels = {channel.name for channel in guild.voice_channels}
+        existing_text_channel = discord.utils.get(guild.text_channels, name=required_text_channel)
 
+        missing_voice_channels = required_voice_channels - existing_voice_channels
+        missing_text_channel = existing_text_channel is None
+
+        # Se tudo já existe, retorna os canais
+        if not missing_voice_channels and not missing_text_channel:
+            voice_channels = {name: discord.utils.get(guild.voice_channels, name=name) for name in required_voice_channels}
+            # Não precisa responder aqui, apenas retornar
+            return True, voice_channels, existing_text_channel
+
+        # Pergunta se deseja criar os canais faltantes
         view = ConfirmChannelCreationView()
         await interaction.response.send_message(
-            "Canais de voz para a partida não encontrados. Deseja criá-los?",
+            "Canais para a partida não encontrados. Deseja criá-los?",
             view=view,
             ephemeral=True
         )
@@ -43,18 +52,60 @@ class CriarPerson(commands.Cog):
 
         if view.result:
             await interaction.edit_original_response(content="Criando canais...", view=None)
-            category = discord.utils.get(guild.categories, name="🆚 Personalizada")
+
+            # Buscar a categoria (pode ter variações no nome)
+            category = None
+            for cat in guild.categories:
+                if "personalizada" in cat.name.lower():
+                    category = cat
+                    break
+
             if not category:
                 category = await guild.create_category("🆚 Personalizada")
-            
-            created_channels = {}
-            for name in required_channels:
-                channel = await guild.create_voice_channel(name, category=category)
-                created_channels[name] = channel
-            return True, created_channels
+
+            # Criar canais de voz
+            created_voice_channels = {}
+            for name in required_voice_channels:
+                # Verificar se o canal já existe e se está na categoria correta
+                existing_channel = discord.utils.get(guild.voice_channels, name=name)
+                if existing_channel and existing_channel.category == category:
+                    created_voice_channels[name] = existing_channel
+                elif name in missing_voice_channels:
+                    channel = await guild.create_voice_channel(name, category=category)
+                    created_voice_channels[name] = channel
+                else:
+                    created_voice_channels[name] = existing_channel
+
+            # Criar canal de texto se não existir
+            if missing_text_channel:
+                # Configurar permissões: apenas o bot pode enviar mensagens
+                overwrites = {
+                    guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=True),
+                    guild.me: discord.PermissionOverwrite(send_messages=True, read_messages=True)
+                }
+                text_channel = await guild.create_text_channel(
+                    required_text_channel,
+                    category=category,
+                    overwrites=overwrites,
+                    topic="📋 Canal exclusivo para exibição de partidas personalizadas"
+                )
+            else:
+                text_channel = existing_text_channel
+
+            # Apaga a mensagem "Criando canais..." após 5 segundos
+            await interaction.edit_original_response(content="Canais criados com sucesso!", view=None)
+            # Agenda a deleção da mensagem
+            import asyncio
+            await asyncio.sleep(5)
+            try:
+                await interaction.delete_original_response()
+            except:
+                pass  # Ignora se a mensagem já foi deletada
+
+            return True, created_voice_channels, text_channel
         else:
             await interaction.edit_original_response(content="Criação de canais cancelada.", view=None)
-            return False, None
+            return False, None, None
 
     @app_commands.command(name='criarperson', description="Cria uma partida personalizada de League of Legends.")
     @app_commands.guild_only()
@@ -67,12 +118,13 @@ class CriarPerson(commands.Cog):
         match_format=[
             app_commands.Choice(name="Aleatório", value=0),
             app_commands.Choice(name="Livre", value=1),
-            app_commands.Choice(name="Balanceado", value=2)
+            app_commands.Choice(name="Balanceado", value=2),
+            app_commands.Choice(name="Aleatório Completo", value=3)
         ]
     )
     @app_commands.describe(
         online_mode="Define se a partida terá registro de estatísticas (Online) ou não (Offline).",
-        match_format="Define como os times serão formados.",
+        match_format="Define como os times serão formados. 'Aleatório Completo' sorteia jogadores + posições + campeões.",
         debug="Ativa o modo de debug com 10 jogadores falsos (apenas para o dono do servidor)."
     )
     async def criar_personalizada(self, interaction: discord.Interaction, online_mode: app_commands.Choice[int], match_format: app_commands.Choice[int], debug: bool = False):
@@ -88,13 +140,13 @@ class CriarPerson(commands.Cog):
             )
             return
 
-        success, channels = await self.manage_voice_channels(interaction)
+        success, voice_channels, text_channel = await self.manage_channels(interaction)
         if not success:
             return
 
-        waiting_channel = channels["| 🕘 | AGUARDANDO"]
-        blue_channel = channels["LADO [ |🔵| ]"]
-        red_channel = channels["LADO [ |🔴| ]"]
+        waiting_channel = voice_channels["| 🕘 | AGUARDANDO"]
+        blue_channel = voice_channels["LADO [ |🔵| ]"]
+        red_channel = voice_channels["LADO [ |🔴| ]"]
 
         view = CustomMatchView(
             creator=interaction.user,
@@ -105,6 +157,10 @@ class CriarPerson(commands.Cog):
             match_format=match_format,
             debug=debug
         )
+
+        # Se ainda não respondeu (canais já existiam), defer antes de operações demoradas
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
 
         if debug:
             # Hardcoded Discord IDs provided by the user for debug mode
@@ -148,10 +204,19 @@ class CriarPerson(commands.Cog):
         embed.set_footer(text="Aguardando jogadores...")
         embed.set_image(url="attachment://timbasQueueGif.gif")
 
-        await interaction.response.send_message(
+        # Envia a mensagem no canal custom_game
+        await text_channel.send(
             embed=embed,
             view=view,
             file=discord.File('./images/timbasQueueGif.gif')
+        )
+
+        # Responde ao usuário que criou o comando
+        # Como sempre fazemos defer() ou manage_channels responde, sempre usamos followup
+        await interaction.followup.send(
+            f"Partida criada com sucesso! Veja em {text_channel.mention}",
+            ephemeral=True,
+            delete_after=5
         )
 
 async def setup(client):

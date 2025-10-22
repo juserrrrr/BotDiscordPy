@@ -25,3 +25,35 @@ class lolService():
     url = f"https://br1.api.riotgames.com/lol/league/v4/entries/by-summoner/{idSumoner}"
     response = self.session.get(url, headers=self.header)
     return response
+
+  def getLatestVersion(self):
+    """Obtém a versão mais recente do Data Dragon."""
+    url = "https://ddragon.leagueoflegends.com/api/versions.json"
+    response = self.session.get(url)
+    return response
+
+  def getAllChampions(self, version: str = None):
+    """Obtém todos os campeões do League of Legends via Data Dragon."""
+    if not version:
+      version_response = self.getLatestVersion()
+      if version_response.status_code == 200:
+        versions = version_response.json()
+        version = versions[0]
+      else:
+        version = "15.20.1"  # Fallback para uma versão conhecida
+
+    url = f"https://ddragon.leagueoflegends.com/cdn/{version}/data/pt_BR/champion.json"
+    response = self.session.get(url)
+    return response
+
+  def getChampionIcon(self, champion_name: str, version: str = None):
+    """Retorna a URL do ícone de um campeão."""
+    if not version:
+      version_response = self.getLatestVersion()
+      if version_response.status_code == 200:
+        versions = version_response.json()
+        version = versions[0]
+      else:
+        version = "15.20.1"
+
+    return f"https://ddragon.leagueoflegends.com/cdn/{version}/img/champion/{champion_name}.png"
