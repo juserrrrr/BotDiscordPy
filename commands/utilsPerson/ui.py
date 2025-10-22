@@ -394,14 +394,15 @@ class StartButton(ui.Button):
             def build_player_data(player_data):
                 if isinstance(player_data, dict):
                     # Modo Aleatório Completo - inclui posição e campeão
-                    return {
+                    player_info = {
                         "discordId": str(player_data['user'].id),
                         "position": player_data.get('position'),
                         "champion": player_data.get('champion'),
                         "rerolledChampion": player_data.get('rerolled', False)
                     }
+                    return player_info
                 else:
-                    # Outros modos - apenas discordId
+                    # Outros modos - apenas discordId (sem position, champion, rerolledChampion)
                     return {
                         "discordId": str(player_data.id)
                     }
