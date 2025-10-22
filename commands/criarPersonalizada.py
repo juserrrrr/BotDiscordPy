@@ -51,18 +51,29 @@ class CriarPerson(commands.Cog):
 
         if view.result:
             await interaction.edit_original_response(content="Criando canais...", view=None)
-            category = discord.utils.get(guild.categories, name="🆚 Personalizada")
+
+            # Buscar a categoria (pode ter variações no nome)
+            category = None
+            for cat in guild.categories:
+                if "personalizada" in cat.name.lower():
+                    category = cat
+                    break
+
             if not category:
                 category = await guild.create_category("🆚 Personalizada")
 
             # Criar canais de voz
             created_voice_channels = {}
             for name in required_voice_channels:
-                if name in missing_voice_channels:
+                # Verificar se o canal já existe e se está na categoria correta
+                existing_channel = discord.utils.get(guild.voice_channels, name=name)
+                if existing_channel and existing_channel.category == category:
+                    created_voice_channels[name] = existing_channel
+                elif name in missing_voice_channels:
                     channel = await guild.create_voice_channel(name, category=category)
                     created_voice_channels[name] = channel
                 else:
-                    created_voice_channels[name] = discord.utils.get(guild.voice_channels, name=name)
+                    created_voice_channels[name] = existing_channel
 
             # Criar canal de texto se não existir
             if missing_text_channel:

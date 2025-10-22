@@ -36,8 +36,20 @@ def generate_league_embed_text(blue_team, red_team, match_format: str, online_mo
     """
     half = 5
 
-    format_str = f"Formato: {match_format}"
-    online_mode_str = f"Modo: {online_mode}"
+    # Abreviar nomes longos para caber no layout
+    format_abbrev = {
+        'Aleatório': 'Aleatório',
+        'Livre': 'Livre',
+        'Balanceado': 'Balanceado',
+        'Aleatório Completo': 'Aleat. Completo'
+    }
+    mode_abbrev = {
+        'Online': 'Online',
+        'Offline': 'Offline'
+    }
+
+    format_str = f"Fmt: {format_abbrev.get(match_format, match_format[:10])}"
+    online_mode_str = f"Modo: {mode_abbrev.get(online_mode, online_mode[:8])}"
     map_name = "[League of Legends] - Summoner's Rift"
 
     blue_pad, red_pad = 18, 18
@@ -57,7 +69,7 @@ def generate_league_embed_text(blue_team, red_team, match_format: str, online_mo
         f"{'   -----':<21}{'-*-':^3}{'-----   ':>21}",
         f"{'':<9}{'Partida personalizada ⚔️':^27}{'':>9}",
         f"{'':<3} {map_name:^39} {'':>3}",
-        f"{format_str:<20}{'':^5}{online_mode_str:>20}",
+        f"{format_str:<22}{'':^1}{online_mode_str:>22}",
         f"{blue_team_header:<{blue_pad}}{'< EQP >':^9}{red_team_header:>{red_pad}}",
         f"{'':<18}{'00     00':^9}{'':>18}",
         f"{'':<18}{'00:00':^9}{'':>18}",
