@@ -7,14 +7,14 @@ from discord import ui, app_commands
 from typing import List
 
 import asyncio
-import random
-import string
 import logging
 
 from base.BaseViews import BaseView
 
-from .helpers import draw_teams, move_team_to_channel, generate_league_embed_text, create_timbas_player, is_user_registered, draw_teams_with_positions_and_champions
+from .helpers import generate_league_embed_text, create_timbas_player, is_user_registered
 from .lol import LeagueVerificationModal
+from .services.player_service import PlayerService
+from .services.match_service import MatchService
 from services.timbasService import timbasService
 
 
@@ -127,24 +127,30 @@ class JoinButton(ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         user = interaction.user
-        
-        # Defer the interaction immediately
+
+        # Defer da interação imediatamente
         await interaction.response.defer(ephemeral=True)
 
-        if not user.voice:
-            message = await interaction.followup.send("Você precisa estar em um canal de voz.", ephemeral=True)
-            await asyncio.sleep(5)
-            await message.delete()
-            return
-        
-        if user in self.parent_view.confirmed_players:
-            message = await interaction.followup.send("Você já está na lista.", ephemeral=True)
+        # Valida se o jogador está em um canal de voz
+        is_valid, error_msg = PlayerService.validate_player_in_voice(user)
+        if not is_valid:
+            message = await interaction.followup.send(error_msg, ephemeral=True)
             await asyncio.sleep(5)
             await message.delete()
             return
 
-        if len(self.parent_view.confirmed_players) >= 10:
-            message = await interaction.followup.send("A partida já está cheia.", ephemeral=True)
+        # Valida se o jogador já não está na lista
+        is_valid, error_msg = PlayerService.validate_player_not_in_list(user, self.parent_view.confirmed_players)
+        if not is_valid:
+            message = await interaction.followup.send(error_msg, ephemeral=True)
+            await asyncio.sleep(5)
+            await message.delete()
+            return
+
+        # Valida se a partida não está cheia
+        is_valid, error_msg = PlayerService.validate_match_not_full(self.parent_view.confirmed_players)
+        if not is_valid:
+            message = await interaction.followup.send(error_msg, ephemeral=True)
             await asyncio.sleep(5)
             await message.delete()
             return
@@ -166,10 +172,12 @@ class JoinButton(ui.Button):
                 if not confirm_view.result:
                     return
 
-        # Armazena o canal de voz original do jogador antes de movê-lo
-        self.parent_view.original_voice_channels[user.id] = user.voice.channel
+        # Armazena o canal de voz original antes de mover
+        PlayerService.store_original_channel(user, self.parent_view.original_voice_channels)
 
-        await user.move_to(self.parent_view.waiting_channel)
+        # Move o jogador para o canal de espera
+        await PlayerService.move_player_to_channel(user, self.parent_view.waiting_channel)
+
         self.parent_view.confirmed_players.append(user)
         self.parent_view.update_buttons()
         await self.parent_view.update_embed(interaction)
@@ -186,12 +194,11 @@ class LeaveButton(ui.Button):
         if user in self.parent_view.confirmed_players:
             self.parent_view.confirmed_players.remove(user)
 
-            # Move o jogador de volta para o canal original se ainda estiver em voz
+            # Restaura o jogador para o canal original
             if user.voice and user.id in self.parent_view.original_voice_channels:
                 original_channel = self.parent_view.original_voice_channels[user.id]
-                await user.move_to(original_channel)
-                # Remove do dicionário
-                del self.parent_view.original_voice_channels[user.id]
+                await PlayerService.move_player_to_channel(user, original_channel)
+                PlayerService.remove_original_channel(user.id, self.parent_view.original_voice_channels)
 
             self.parent_view.update_buttons()
             await self.parent_view.update_embed(interaction)
@@ -225,22 +232,26 @@ class DrawButton(ui.Button):
             await message.delete()
             return
 
-        # Verifica o modo de sorteio
-        if self.parent_view.match_format.value == 3:  # Aleatório Completo
-            # Modo completo: Sorteia jogadores + posições
-            self.parent_view.blue_team, self.parent_view.red_team = draw_teams_with_positions_and_champions(self.parent_view.confirmed_players)
-            self.parent_view.show_details = True
-            self.parent_view.drawn = True  # Marca como sorteado
+        # Realiza o sorteio usando MatchService
+        blue_team, red_team, show_details = MatchService.perform_draw(
+            self.parent_view.match_format.value,
+            self.parent_view.confirmed_players
+        )
 
-            # No modo debug, marca 6 jogadores como prontos automaticamente
+        self.parent_view.blue_team = blue_team
+        self.parent_view.red_team = red_team
+        self.parent_view.show_details = show_details
+
+        # Para o modo Aleatório Completo
+        if self.parent_view.match_format.value == 3:
+            self.parent_view.drawn = True
+
+            # Modo debug: marca 6 jogadores como prontos automaticamente
             if self.parent_view.debug:
                 self.parent_view.ready_players = self.parent_view.confirmed_players[:6]
 
             message_text = "Times e posições sorteados! Agora marque-se como pronto."
-        else:  # Aleatório normal (value == 0)
-            # Modo simples: Sorteia apenas os jogadores
-            self.parent_view.blue_team, self.parent_view.red_team = draw_teams(self.parent_view.confirmed_players)
-            self.parent_view.show_details = False
+        else:
             message_text = "Times sorteados!"
 
         self.parent_view.update_buttons()
@@ -308,90 +319,58 @@ class StartButton(ui.Button):
             asyncio.create_task(delete_message_after_delay(message))
             return
 
-        # Verifica se precisa sortear os times primeiro (modos aleatórios)
-        if (self.parent_view.match_format.value == 0 or self.parent_view.match_format.value == 3) and not (self.parent_view.blue_team and self.parent_view.red_team):
-            message = await interaction.followup.send("Sorteie os times primeiro.", ephemeral=True)
+        # Valida se os times foram sorteados (para modos aleatórios)
+        is_valid, error_msg = MatchService.validate_teams_drawn(
+            self.parent_view.match_format.value,
+            self.parent_view.blue_team,
+            self.parent_view.red_team
+        )
+        if not is_valid:
+            message = await interaction.followup.send(error_msg, ephemeral=True)
             asyncio.create_task(delete_message_after_delay(message))
             return
 
-        # Verifica se pelo menos 6 jogadores estão prontos no modo Aleatório Completo
-        if self.parent_view.match_format.value == 3:
-            ready_count = len(self.parent_view.ready_players)
-            required_ready = 6  # Mínimo de 6 jogadores prontos
+        # Valida se jogadores prontos (para modo Aleatório Completo)
+        is_valid, error_msg = MatchService.validate_ready_players(
+            self.parent_view.match_format.value,
+            self.parent_view.ready_players
+        )
+        if not is_valid:
+            message = await interaction.followup.send(error_msg, ephemeral=True)
+            asyncio.create_task(delete_message_after_delay(message))
+            return
 
-            if ready_count < required_ready:
-                message = await interaction.followup.send(
-                    f"Aguarde pelo menos 6 jogadores estarem prontos para iniciar. ({ready_count}/{required_ready})",
-                    ephemeral=True
-                )
-                asyncio.create_task(delete_message_after_delay(message))
-                return
+        # Prepara times para o modo Livre
+        if self.parent_view.match_format.value == 1:
+            blue_team, red_team = MatchService.prepare_free_mode_teams(self.parent_view.confirmed_players)
+            self.parent_view.blue_team = blue_team
+            self.parent_view.red_team = red_team
 
-        if self.parent_view.match_format.value == 1: # Modo Livre
-            half = len(self.parent_view.confirmed_players) // 2
-            self.parent_view.blue_team = self.parent_view.confirmed_players[:half]
-            self.parent_view.red_team = self.parent_view.confirmed_players[half:]
-
-        # Criar a partida na API Timbas
+        # Cria partida na API (modo online)
         if self.parent_view.online_mode.value == 1:
-            timbas = timbasService()
+            success, error_msg, match_id, blue_team_id, red_team_id = await MatchService.create_match_in_api(
+                interaction.guild.id,
+                self.parent_view.match_format.value,
+                self.parent_view.blue_team,
+                self.parent_view.red_team
+            )
 
-            # Gerar riotMatchId aleatório
-            random_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=9))
-            riot_match_id = f"TB_{random_string}"
-
-            # Construir o payload baseado no tipo de partida
-            match_type = self.parent_view.match_format.value
-
-            # Função auxiliar para construir informações dos jogadores
-            def build_player_data(player_data):
-                if isinstance(player_data, dict):
-                    # Modo Aleatório Completo - inclui posição
-                    player_info = {
-                        "discordId": str(player_data['user'].id),
-                        "position": player_data.get('position')
-                    }
-                    return player_info
-                else:
-                    # Outros modos - apenas discordId
-                    return {
-                        "discordId": str(player_data.id)
-                    }
-
-            payload = {
-                "ServerDiscordId": str(interaction.guild.id),
-                "riotMatchId": riot_match_id,
-                "matchType": match_type,
-                "teamBlue": {
-                    "players": [build_player_data(p) for p in self.parent_view.blue_team]
-                },
-                "teamRed": {
-                    "players": [build_player_data(p) for p in self.parent_view.red_team]
-                }
-            }
-            response = timbas.createMatch(payload)
-            if response.status_code == 201:
-                match_data = response.json()
-                self.parent_view.match_id = match_data.get('id')
-                self.parent_view.blue_team_id = match_data.get('teamBlueId')
-                self.parent_view.red_team_id = match_data.get('teamRedId')
-
-                if not self.parent_view.match_id or not self.parent_view.blue_team_id or not self.parent_view.red_team_id:
-                    message = await interaction.followup.send("Erro: A resposta da API não continha os IDs necessários.", ephemeral=True)
-                    asyncio.create_task(delete_message_after_delay(message))
-                    return
-            else:
-                message = await interaction.followup.send(f"Erro ao criar a partida na API: {response.text}", ephemeral=True)
+            if not success:
+                message = await interaction.followup.send(error_msg, ephemeral=True)
                 asyncio.create_task(delete_message_after_delay(message))
                 return
 
+            self.parent_view.match_id = match_id
+            self.parent_view.blue_team_id = blue_team_id
+            self.parent_view.red_team_id = red_team_id
+
+            # Move jogadores para os canais dos times
             if (self.parent_view.blue_channel and self.parent_view.red_channel) and not self.parent_view.debug:
-                # Extrai os usuários dos times (pode ser dict ou User)
-                blue_users = [p['user'] if isinstance(p, dict) else p for p in self.parent_view.blue_team]
-                red_users = [p['user'] if isinstance(p, dict) else p for p in self.parent_view.red_team]
-                await move_team_to_channel(blue_users, self.parent_view.blue_channel)
-                await move_team_to_channel(red_users, self.parent_view.red_channel)
-        
+                blue_users = PlayerService.extract_users_from_team(self.parent_view.blue_team)
+                red_users = PlayerService.extract_users_from_team(self.parent_view.red_team)
+                await PlayerService.move_team_to_channel(blue_users, self.parent_view.blue_channel)
+                await PlayerService.move_team_to_channel(red_users, self.parent_view.red_channel)
+
         self.parent_view.started = True
         self.parent_view.update_buttons()
         await self.parent_view.update_embed(interaction, started=True)
@@ -411,13 +390,12 @@ class FinishButton(ui.Button):
             return
 
         if self.parent_view.online_mode.value == 0: # Offline
-            # Move todos os jogadores de volta aos canais originais
+            # Restaura todos os jogadores para os canais originais
             if not self.parent_view.debug:
-                for player in self.parent_view.confirmed_players:
-                    # Verifica se o jogador ainda está em voz e se temos o canal original dele
-                    if player.voice and player.id in self.parent_view.original_voice_channels:
-                        original_channel = self.parent_view.original_voice_channels[player.id]
-                        await player.move_to(original_channel)
+                await PlayerService.restore_players_to_original_channels(
+                    self.parent_view.confirmed_players,
+                    self.parent_view.original_voice_channels
+                )
 
             await self.parent_view.update_embed(interaction, finished=True)
             self.parent_view.stop()
@@ -455,69 +433,72 @@ class WinningTeamSelect(ui.Select):
         super().__init__(placeholder="Selecione o time vencedor...", options=options)
 
     async def callback(self, interaction: discord.Interaction):
-        # Deferir a resposta para dar tempo ao bot de processar
+        # Defer da resposta para dar tempo ao bot de processar
         await interaction.response.defer(ephemeral=True)
 
         if interaction.user != self.parent_view.match_view.creator:
             return await interaction.followup.send("Apenas o criador da partida pode selecionar o vencedor.", ephemeral=True)
 
         winner_team_id = int(self.values[0])
-        
-        response_ok = False
-        timbas = timbasService()
-        payload = {"winnerId": winner_team_id}
-        response = timbas.updateMatchWinner(self.parent_view.match_view.match_id, payload)
-        if response.status_code == 200:
-            response_ok = True
-        else:
-            # Usa followup para enviar o erro
-            await interaction.followup.send(f"Erro ao finalizar a partida: {response.text}", ephemeral=True)
-            # Re-habilita o botão em caso de erro
+
+        # Atualiza o vencedor da partida usando MatchService
+        success, error_msg = await MatchService.update_match_winner(
+            self.parent_view.match_view.match_id,
+            winner_team_id
+        )
+
+        if not success:
+            # Envia erro e reabilita o botão de finalizar
+            await interaction.followup.send(error_msg, ephemeral=True)
             self.parent_view.match_view.finishing = False
             for item in self.parent_view.match_view.children:
                 if isinstance(item, FinishButton):
                     item.disabled = False
                     break
             await self.parent_view.original_message.edit(view=self.parent_view.match_view)
+            return
 
-        if response_ok:
-            # Marca que o vencedor foi selecionado para evitar timeout interferir
-            self.parent_view.winner_selected = True
+        # Marca que o vencedor foi selecionado
+        self.parent_view.winner_selected = True
 
-            winner_side = 'BLUE' if winner_team_id == self.parent_view.match_view.blue_team_id else 'RED'
-            winner_label = "Azul" if winner_side == 'BLUE' else "Vermelho"
+        # Obtém o lado vencedor e o rótulo
+        winner_side = MatchService.get_winner_side(
+            winner_team_id,
+            self.parent_view.match_view.blue_team_id,
+            self.parent_view.match_view.red_team_id
+        )
+        winner_label = MatchService.get_winner_label(winner_side)
 
-            # Gera o novo corpo da embed com o troféu
-            new_embed_text = generate_league_embed_text(
-                blue_team=self.parent_view.match_view.blue_team,
-                red_team=self.parent_view.match_view.red_team,
-                match_format=self.parent_view.match_view.match_format.name,
-                online_mode=self.parent_view.match_view.online_mode.name,
-                winner=winner_side,
-                show_details=self.parent_view.match_view.show_details
+        # Gera o novo corpo da embed com o troféu
+        new_embed_text = generate_league_embed_text(
+            blue_team=self.parent_view.match_view.blue_team,
+            red_team=self.parent_view.match_view.red_team,
+            match_format=self.parent_view.match_view.match_format.name,
+            online_mode=self.parent_view.match_view.online_mode.name,
+            winner=winner_side,
+            show_details=self.parent_view.match_view.show_details
+        )
+
+        # Cria uma embed totalmente nova para evitar problemas de referência
+        final_embed = discord.Embed(
+            description=f"```{new_embed_text}```",
+            color=discord.Color.blue()
+        )
+        final_embed.set_footer(text=f"Partida finalizada! Vencedor: Time {winner_label}")
+        final_embed.set_image(url="attachment://timbasQueueGif.gif")
+
+        # Restaura todos os jogadores para os canais originais
+        if not self.parent_view.match_view.debug:
+            await PlayerService.restore_players_to_original_channels(
+                self.parent_view.match_view.confirmed_players,
+                self.parent_view.match_view.original_voice_channels
             )
 
-            # Cria uma embed totalmente nova para evitar problemas de referência
-            final_embed = discord.Embed(
-                description=f"```{new_embed_text}```",
-                color=discord.Color.blue() # ou a cor original
-            )
-            final_embed.set_footer(text=f"Partida finalizada! Vencedor: Time {winner_label}")
-            final_embed.set_image(url="attachment://timbasQueueGif.gif")
+        # Edita a mensagem original com a nova embed
+        await self.parent_view.original_message.edit(embed=final_embed, view=None)
 
-            # Move todos os jogadores de volta aos canais originais
-            if not self.parent_view.match_view.debug:
-                for player in self.parent_view.match_view.confirmed_players:
-                    # Verifica se o jogador ainda está em voz e se temos o canal original dele
-                    if player.voice and player.id in self.parent_view.match_view.original_voice_channels:
-                        original_channel = self.parent_view.match_view.original_voice_channels[player.id]
-                        await player.move_to(original_channel)
+        self.parent_view.match_view.stop()
 
-            # Edita a mensagem original com a nova embed
-            await self.parent_view.original_message.edit(embed=final_embed, view=None)
-
-            self.parent_view.match_view.stop()
-        
         # Deleta a mensagem de seleção (que é a resposta original a esta interação)
         await interaction.delete_original_response()
 
@@ -573,24 +554,27 @@ class RejoinButton(ui.Button):
         user = interaction.user
         await interaction.response.defer(ephemeral=True)
 
-        if not user.voice:
-            message = await interaction.followup.send("Você precisa estar em um canal de voz para ser movido.", ephemeral=True)
+        # Valida se o jogador está em um canal de voz
+        is_valid, error_msg = PlayerService.validate_player_in_voice(user)
+        if not is_valid:
+            message = await interaction.followup.send(error_msg, ephemeral=True)
             await asyncio.sleep(5)
             await message.delete()
             return
 
-        # Extrai os usuários dos times (pode ser dict ou User)
-        blue_players = [p['user'] if isinstance(p, dict) else p for p in self.parent_view.blue_team]
-        red_players = [p['user'] if isinstance(p, dict) else p for p in self.parent_view.red_team]
+        # Obtém o canal do time do jogador
+        channel = PlayerService.get_player_team_channel(
+            user,
+            self.parent_view.blue_team,
+            self.parent_view.red_team,
+            self.parent_view.blue_channel,
+            self.parent_view.red_channel
+        )
 
-        if user in blue_players:
-            await user.move_to(self.parent_view.blue_channel)
-            message = await interaction.followup.send("Você foi movido para o canal do Time Azul.", ephemeral=True)
-            await asyncio.sleep(5)
-            await message.delete()
-        elif user in red_players:
-            await user.move_to(self.parent_view.red_channel)
-            message = await interaction.followup.send("Você foi movido para o canal do Time Vermelho.", ephemeral=True)
+        if channel:
+            await PlayerService.move_player_to_channel(user, channel)
+            team_name = "Azul" if channel == self.parent_view.blue_channel else "Vermelho"
+            message = await interaction.followup.send(f"Você foi movido para o canal do Time {team_name}.", ephemeral=True)
             await asyncio.sleep(5)
             await message.delete()
         else:
