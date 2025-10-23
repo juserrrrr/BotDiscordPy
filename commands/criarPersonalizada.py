@@ -124,7 +124,7 @@ class CriarPerson(commands.Cog):
     )
     @app_commands.describe(
         online_mode="Define se a partida terá registro de estatísticas (Online) ou não (Offline).",
-        match_format="Define como os times serão formados. 'Aleatório Completo' sorteia jogadores + posições + campeões.",
+        match_format="Define como os times serão formados. 'Aleatório Completo' sorteia jogadores + posições.",
         debug="Ativa o modo de debug com 10 jogadores falsos (apenas para o dono do servidor)."
     )
     async def criar_personalizada(self, interaction: discord.Interaction, online_mode: app_commands.Choice[int], match_format: app_commands.Choice[int], debug: bool = False):
@@ -211,8 +211,7 @@ class CriarPerson(commands.Cog):
             file=discord.File('./images/timbasQueueGif.gif')
         )
 
-        # Responde ao usuário que criou o comando
-        # Como sempre fazemos defer() ou manage_channels responde, sempre usamos followup
+        # Envia resposta usando followup (defer ou manage_channels já respondeu)
         message = await interaction.followup.send(
             f"Partida criada com sucesso! Veja em {text_channel.mention}",
             ephemeral=True,

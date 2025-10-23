@@ -38,10 +38,7 @@ class CustomMatchView(BaseView):
         self.blue_team_id = None
         self.red_team_id = None
         self.finishing = False
-        self.show_details = False  # Flag para mostrar posições e campeões
-        self.reroll_used = False  # Controla se já foi usado o re-sorteio
-        self.drawn = False  # Flag para controlar se já foi sorteado (Aleatório Completo)
-        self.ready_players: List[discord.User] = []  # Jogadores prontos (Aleatório Completo)
+        self.show_details = False  # Flag para mostrar posições
         self.original_voice_channels = {}  # Armazena o canal de voz original de cada jogador
 
         self.update_buttons()
@@ -52,34 +49,18 @@ class CustomMatchView(BaseView):
 
         if not self.started:
             # --- State: Before match starts ---
+            self.add_item(JoinButton(self))
+            self.add_item(LeaveButton(self))
+            self.add_item(PlayerCountButton(self.confirmed_players))
 
-            # Modo Aleatório Completo tem fluxo especial
-            if self.match_format.value == 3:  # Aleatório Completo
-                if not self.drawn:
-                    # Antes do sorteio: mostrar Entrar, Sair, Sortear
-                    self.add_item(JoinButton(self))
-                    self.add_item(LeaveButton(self))
-                    self.add_item(PlayerCountButton(self.confirmed_players))
-                    self.add_item(DrawButton(self))
-                else:
-                    # Após sorteio: esconder Entrar/Sair/Sortear, mostrar Pronto
-                    self.add_item(ReadyCountButton(self.ready_players))
-                    self.add_item(ReadyButton(self))
-                    self.add_item(StartButton(self))
-                    self.add_item(FinishButton(self))
-            else:
-                # Outros modos mantêm comportamento original
-                self.add_item(JoinButton(self))
-                self.add_item(LeaveButton(self))
-                self.add_item(PlayerCountButton(self.confirmed_players))
+            # Modos aleatórios (0 e 3) têm botão de sortear
+            if self.match_format.value in [0, 3]:  # Aleatório ou Aleatório Completo
+                self.add_item(DrawButton(self))
+            elif self.match_format.value == 1:  # Livre
+                self.add_item(SwitchSideButton(self))
 
-                if self.match_format.value == 0:  # Aleatório
-                    self.add_item(DrawButton(self))
-                elif self.match_format.value == 1:  # Livre
-                    self.add_item(SwitchSideButton(self))
-
-                self.add_item(StartButton(self))
-                self.add_item(FinishButton(self))
+            self.add_item(StartButton(self))
+            self.add_item(FinishButton(self))
         else:
             # --- State: After match starts ---
             self.add_item(RejoinButton(self))
@@ -214,10 +195,6 @@ class PlayerCountButton(ui.Button):
     def __init__(self, players: List[discord.User]):
         super().__init__(label=f"Confirmados: {len(players)}/10", style=discord.ButtonStyle.grey, disabled=True)
 
-class ReadyCountButton(ui.Button):
-    def __init__(self, ready_players: List[discord.User]):
-        super().__init__(label=f"Prontos: {len(ready_players)}/6", style=discord.ButtonStyle.grey, disabled=True)
-
 class DrawButton(ui.Button):
     """Botão para sortear os times (com ou sem posições e campeões)."""
     def __init__(self, parent_view: CustomMatchView):
@@ -242,50 +219,15 @@ class DrawButton(ui.Button):
         self.parent_view.red_team = red_team
         self.parent_view.show_details = show_details
 
-        # Para o modo Aleatório Completo
+        # Define mensagem baseada no modo
         if self.parent_view.match_format.value == 3:
-            self.parent_view.drawn = True
-
-            # Modo debug: marca 6 jogadores como prontos automaticamente
-            if self.parent_view.debug:
-                self.parent_view.ready_players = self.parent_view.confirmed_players[:6]
-
-            message_text = "Times e posições sorteados! Agora marque-se como pronto."
+            message_text = "Times e posições sorteados!"
         else:
             message_text = "Times sorteados!"
 
         self.parent_view.update_buttons()
         await self.parent_view.update_embed(interaction, started=False)
         message = await interaction.followup.send(message_text, ephemeral=True)
-        await asyncio.sleep(5)
-        await message.delete()
-
-class ReadyButton(ui.Button):
-    """Botão para marcar-se como pronto no modo Aleatório Completo."""
-    def __init__(self, parent_view: CustomMatchView):
-        super().__init__(label="Pronto", style=discord.ButtonStyle.success, emoji="✅", disabled=parent_view.started)
-        self.parent_view = parent_view
-
-    async def callback(self, interaction: discord.Interaction):
-        user = interaction.user
-        await interaction.response.defer(ephemeral=True)
-
-        if user not in self.parent_view.confirmed_players:
-            message = await interaction.followup.send("Você não está na partida.", ephemeral=True)
-            await asyncio.sleep(5)
-            await message.delete()
-            return
-
-        if user in self.parent_view.ready_players:
-            # Já está pronto - não pode desconfirmar
-            message = await interaction.followup.send("Você já está confirmado como pronto!", ephemeral=True)
-        else:
-            # Adiciona ao pronto (confirmação)
-            self.parent_view.ready_players.append(user)
-            message = await interaction.followup.send(f"Você está confirmado e pronto! ({len(self.parent_view.ready_players)} prontos)", ephemeral=True)
-            self.parent_view.update_buttons()
-            await self.parent_view.update_embed(interaction, started=False)
-
         await asyncio.sleep(5)
         await message.delete()
 
@@ -324,16 +266,6 @@ class StartButton(ui.Button):
             self.parent_view.match_format.value,
             self.parent_view.blue_team,
             self.parent_view.red_team
-        )
-        if not is_valid:
-            message = await interaction.followup.send(error_msg, ephemeral=True)
-            asyncio.create_task(delete_message_after_delay(message))
-            return
-
-        # Valida se jogadores prontos (para modo Aleatório Completo)
-        is_valid, error_msg = MatchService.validate_ready_players(
-            self.parent_view.match_format.value,
-            self.parent_view.ready_players
         )
         if not is_valid:
             message = await interaction.followup.send(error_msg, ephemeral=True)
@@ -524,12 +456,12 @@ class FinishMatchView(BaseView):
                 item.disabled = False
                 break
 
-        # Tenta restaurar os botões na mensagem original buscando ela novamente
+        # Restaura os botões na mensagem original
         try:
-            # Busca a mensagem novamente pelo ID para garantir que existe
+            # Busca a mensagem novamente pelo ID para garantir existência
             channel = self.original_message.channel
             message = await channel.fetch_message(self.original_message.id)
-            # Atualiza APENAS a view, mantendo embed e conteúdo
+            # Atualiza apenas a view, mantendo embed e conteúdo
             await message.edit(view=self.match_view)
         except:
             # Se falhar por qualquer motivo, não faz nada
