@@ -62,10 +62,9 @@ class CustomMatchView(BaseView):
                     self.add_item(PlayerCountButton(self.confirmed_players))
                     self.add_item(DrawButton(self))
                 else:
-                    # Após sorteio: esconder Entrar/Sair/Sortear, mostrar Pronto e Re-sortear
+                    # Após sorteio: esconder Entrar/Sair/Sortear, mostrar Pronto
                     self.add_item(ReadyCountButton(self.ready_players))
                     self.add_item(ReadyButton(self))
-                    self.add_item(RerollIndividualChampionButton(self))
                     self.add_item(StartButton(self))
                     self.add_item(FinishButton(self))
             else:
@@ -228,7 +227,7 @@ class DrawButton(ui.Button):
 
         # Verifica o modo de sorteio
         if self.parent_view.match_format.value == 3:  # Aleatório Completo
-            # Modo completo: Sorteia jogadores + posições + campeões
+            # Modo completo: Sorteia jogadores + posições
             self.parent_view.blue_team, self.parent_view.red_team = draw_teams_with_positions_and_champions(self.parent_view.confirmed_players)
             self.parent_view.show_details = True
             self.parent_view.drawn = True  # Marca como sorteado
@@ -237,7 +236,7 @@ class DrawButton(ui.Button):
             if self.parent_view.debug:
                 self.parent_view.ready_players = self.parent_view.confirmed_players[:6]
 
-            message_text = "Times, posições e campeões sorteados! Agora marque-se como pronto."
+            message_text = "Times e posições sorteados! Agora marque-se como pronto."
         else:  # Aleatório normal (value == 0)
             # Modo simples: Sorteia apenas os jogadores
             self.parent_view.blue_team, self.parent_view.red_team = draw_teams(self.parent_view.confirmed_players)
@@ -276,71 +275,6 @@ class ReadyButton(ui.Button):
             self.parent_view.update_buttons()
             await self.parent_view.update_embed(interaction, started=False)
 
-        await asyncio.sleep(5)
-        await message.delete()
-
-
-class RerollIndividualChampionButton(ui.Button):
-    """Botão para cada jogador re-sortear seu próprio campeão (sem voltar atrás)."""
-    def __init__(self, parent_view: CustomMatchView):
-        super().__init__(label="Re-sortear Meu Campeão", style=discord.ButtonStyle.secondary, emoji="🔄", disabled=parent_view.started)
-        self.parent_view = parent_view
-
-    async def callback(self, interaction: discord.Interaction):
-        user = interaction.user
-        await interaction.response.defer(ephemeral=True)
-
-        if user not in self.parent_view.confirmed_players:
-            message = await interaction.followup.send("Você não está na partida.", ephemeral=True)
-            await asyncio.sleep(5)
-            await message.delete()
-            return
-
-        # Encontra o jogador nos times
-        from .helpers import draw_champion_for_position
-        player_data = None
-
-        for p in self.parent_view.blue_team:
-            if isinstance(p, dict) and p['user'] == user:
-                player_data = p
-                break
-
-        if not player_data:
-            for p in self.parent_view.red_team:
-                if isinstance(p, dict) and p['user'] == user:
-                    player_data = p
-                    break
-
-        if not player_data:
-            message = await interaction.followup.send("Erro ao encontrar seus dados.", ephemeral=True)
-            await asyncio.sleep(5)
-            await message.delete()
-            return
-
-        # Verifica se já re-sorteou
-        if player_data.get('rerolled', False):
-            message = await interaction.followup.send("Você já re-sorteou seu campeão!", ephemeral=True)
-            await asyncio.sleep(5)
-            await message.delete()
-            return
-
-        # Coleta todos os campeões já usados
-        used_champions = set()
-        for p in self.parent_view.blue_team + self.parent_view.red_team:
-            if isinstance(p, dict) and p != player_data:
-                used_champions.add(p.get('champion'))
-
-        # Re-sorteia o campeão
-        position = player_data.get('position')
-        new_champion = draw_champion_for_position(position, used_champions)
-        old_champion = player_data.get('champion')
-        player_data['champion'] = new_champion
-        player_data['rerolled'] = True  # Marca que já re-sorteou
-
-        self.parent_view.update_buttons()
-        await self.parent_view.update_embed(interaction, started=False)
-
-        message = await interaction.followup.send(f"Campeão re-sorteado! {old_champion} → {new_champion} (não pode voltar atrás)", ephemeral=True)
         await asyncio.sleep(5)
         await message.delete()
 
@@ -412,16 +346,14 @@ class StartButton(ui.Button):
             # Função auxiliar para construir informações dos jogadores
             def build_player_data(player_data):
                 if isinstance(player_data, dict):
-                    # Modo Aleatório Completo - inclui posição e campeão
+                    # Modo Aleatório Completo - inclui posição
                     player_info = {
                         "discordId": str(player_data['user'].id),
-                        "position": player_data.get('position'),
-                        "champion": player_data.get('champion'),
-                        "rerolledChampion": player_data.get('rerolled', False)
+                        "position": player_data.get('position')
                     }
                     return player_info
                 else:
-                    # Outros modos - apenas discordId (sem position, champion, rerolledChampion)
+                    # Outros modos - apenas discordId
                     return {
                         "discordId": str(player_data.id)
                     }

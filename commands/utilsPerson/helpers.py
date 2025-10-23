@@ -32,7 +32,7 @@ CHAMPIONS_BY_ROLE = load_champions_by_role()
 def generate_league_embed_text(blue_team, red_team, match_format: str, online_mode: str, winner: str = None, show_details: bool = False) -> str:
     """
     Gera o texto formatado para o embed da partida de League of Legends.
-    blue_team e red_team podem ser List[discord.User] ou List[dict] com {user, position, champion}
+    blue_team e red_team podem ser List[discord.User] ou List[dict] com {user, position}
     """
     half = 5
 
@@ -71,40 +71,35 @@ def generate_league_embed_text(blue_team, red_team, match_format: str, online_mo
         f"{'':<3} {map_name:^39} {'':>3}",
         f"{format_str:<22}{'':^1}{online_mode_str:>22}",
         f"{blue_team_header:<{blue_pad}}{'< EQP >':^9}{red_team_header:>{red_pad}}",
+        "",  # Linha em branco para espaçamento
     ]
 
     for i in range(half):
-        # Verifica se é dict (com posição e campeão) ou User simples
+        # Verifica se é dict (com posição) ou User simples
         if i < len(blue_team):
             if isinstance(blue_team[i], dict):
                 blue_player = blue_team[i]['user'].name[:12]
                 blue_position = blue_team[i].get('position', '')[:3] if show_details else ''
-                blue_champion = blue_team[i].get('champion', '')[:14] if show_details else ''
             else:
                 blue_player = blue_team[i].name[:12]
                 blue_position = ''
-                blue_champion = ''
         else:
             blue_player = "Vazio"
             blue_position = ''
-            blue_champion = ''
 
         if i < len(red_team):
             if isinstance(red_team[i], dict):
                 red_player = red_team[i]['user'].name[:12]
                 red_position = red_team[i].get('position', '')[:3] if show_details else ''
-                red_champion = red_team[i].get('champion', '')[:14] if show_details else ''
             else:
                 red_player = red_team[i].name[:12]
                 red_position = ''
-                red_champion = ''
         else:
             red_player = "Vazio"
             red_position = ''
-            red_champion = ''
 
-        if show_details and (blue_position or blue_champion or red_position or red_champion):
-            # Formato com posição e campeão - mais legível
+        if show_details and (blue_position or red_position):
+            # Formato com posição - mais legível
             # Abreviações de posição
             pos_abbrev = {
                 'Top': 'TOP',
@@ -119,17 +114,12 @@ def generate_league_embed_text(blue_team, red_team, match_format: str, online_mo
             # Linha com jogador e posição
             blue_str = f"[{blue_pos_short}] {blue_player:<12}"
             red_str = f"{red_player:>12} [{red_pos_short}]"
-            lines.append(f"{blue_str:<19}{' VS ':^7}{red_str:>19}")
-
-            # Linha com campeão com VS no meio
-            blue_champ_str = f"→ {blue_champion:<14}"
-            red_champ_str = f"{red_champion:>14} ←"
-            lines.append(f"{blue_champ_str:<17}{' VS ':^11}{red_champ_str:>17}")
+            lines.append(f"{blue_str:<19}{'< VS >':^7}{red_str:>19}")
         else:
             # Formato simples - só nome com VS no meio
             blue_str = f"{blue_player:<12}"
             red_str = f"{red_player:>12}"
-            lines.append(f"{blue_str:<19}{' VS ':^7}{red_str:>19}")
+            lines.append(f"{blue_str:<19}{'< VS >':^7}{red_str:>19}")
 
     return "\n".join(lines)
 
@@ -282,9 +272,9 @@ def draw_champion_for_position(position: str, used_champions: set) -> str:
 
 def draw_teams_with_positions_and_champions(players: List[discord.User]) -> Tuple[List[dict], List[dict]]:
     """
-    Sorteia dois times com posições e campeões aleatórios específicos para cada posição.
+    Sorteia dois times com posições aleatórias.
     Retorna: (blue_team, red_team)
-    Cada time é uma lista de dicionários com: {user, position, champion}
+    Cada time é uma lista de dicionários com: {user, position}
     Os jogadores são ordenados na ordem: Top → Jungle → Mid → ADC → Suporte
     """
     from random import shuffle
@@ -301,33 +291,24 @@ def draw_teams_with_positions_and_champions(players: List[discord.User]) -> Tupl
     blue_positions = draw_positions()
     red_positions = draw_positions()
 
-    # Conjunto para rastrear campeões já sorteados (para evitar duplicatas)
-    used_champions = set()
-
-    # Criar time azul com posições e campeões
+    # Criar time azul com posições
     blue_team = []
     for i, player in enumerate(blue_players):
         position = blue_positions[i] if i < len(blue_positions) else 'Fill'
-        champion = draw_champion_for_position(position, used_champions)
-        used_champions.add(champion)
 
         blue_team.append({
             'user': player,
-            'position': position,
-            'champion': champion
+            'position': position
         })
 
-    # Criar time vermelho com posições e campeões
+    # Criar time vermelho com posições
     red_team = []
     for i, player in enumerate(red_players):
         position = red_positions[i] if i < len(red_positions) else 'Fill'
-        champion = draw_champion_for_position(position, used_champions)
-        used_champions.add(champion)
 
         red_team.append({
             'user': player,
-            'position': position,
-            'champion': champion
+            'position': position
         })
 
     # Ordenar os times pela ordem das posições: Top → Jungle → Mid → ADC → Suporte
