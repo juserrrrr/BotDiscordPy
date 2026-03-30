@@ -5,7 +5,6 @@ from random import randint
 from typing import List, Tuple
 
 from services.timbasService import timbasService
-from services.lolService import lolService
 
 
 def load_champions_by_role():
@@ -192,28 +191,28 @@ def get_player_data_from_league(summoner_data: dict, account_data: dict, rank_da
 
 
 def get_league_account_data(username: str):
-    """Busca e retorna os dados de uma conta do League of Legends."""
-    lol = lolService()
+    """Busca e retorna os dados de uma conta do League of Legends via backend Timbas."""
+    timbas = timbasService()
     name, tag = split_user_tag(username)
 
-    account_response = lol.getAccount(name, tag)
-    if account_response.status_code != 200:
+    response = timbas.getPlayerLol(name, tag)
+    if response is None or response.status_code != 200:
         return None
 
-    account_data = account_response.json()
-    puuid = account_data.get('puuid')
+    data = response.json()
+    solo = data.get('solo', {})
+    flex = data.get('flex', {})
 
-    summoner_response = lol.getSummonerByPuuid(puuid)
-    if summoner_response.status_code != 200:
-        return None
-
-    summoner_data = summoner_response.json()
-    summoner_id = summoner_data.get('id')
-
-    rank_response = lol.getRankedStats(summoner_id)
-    rank_data = rank_response.json() if rank_response.status_code == 200 else []
-
-    return get_player_data_from_league(summoner_data, account_data, rank_data)
+    return {
+        'name': data.get('gameName'),
+        'profileIconId': data.get('profileIconId'),
+        'puuid': data.get('puuid'),
+        'level': data.get('summonerLevel'),
+        'tierSolo': solo.get('tier', 'Unranked'),
+        'rankSolo': solo.get('rank', ''),
+        'tierFlex': flex.get('tier', 'Unranked'),
+        'rankFlex': flex.get('rank', ''),
+    }
 
 
 def draw_positions() -> List[str]:
@@ -226,14 +225,12 @@ def draw_positions() -> List[str]:
 
 
 def get_all_champions_list():
-    """Obtém a lista de todos os campeões do League of Legends."""
-    lol = lolService()
-    response = lol.getAllChampions()
+    """Obtém a lista de todos os campeões do League of Legends via backend Timbas."""
+    timbas = timbasService()
+    response = timbas.getAllChampionsLol()
 
     if response.status_code == 200:
-        data = response.json()
-        champions = list(data['data'].keys())
-        return champions
+        return response.json()  # backend já retorna lista de strings
     return []
 
 

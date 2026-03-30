@@ -43,3 +43,30 @@ class timbasService():
     url = f"{self.url}/leaderboard/{serverId}"
     response = self.session.get(url, headers=self.header)
     return response
+
+  # ─── LoL / Riot API proxy ─────────────────────────────────────────────────
+
+  def getPlayerLol(self, gameName: str, tagLine: str):
+    url = f"{self.url}/riot/player/{gameName}/{tagLine}"
+    response = self.session.get(url, headers=self.header)
+    return response
+
+  def verifyIconLol(self, puuid: str, iconId: int):
+    url = f"{self.url}/riot/verify-icon"
+    response = self.session.post(url, headers=self.header, json={'puuid': puuid, 'iconId': iconId})
+    return response
+
+  def getAllChampionsLol(self):
+    url = f"{self.url}/riot/champions"
+    response = self.session.get(url, headers=self.header)
+    return response
+
+  def getProfileIconUrlLol(self, iconId: int):
+    url = f"{self.url}/riot/profile-icon/{iconId}"
+    response = self.session.get(url, headers=self.header)
+    return response.json().get('url') if response.status_code == 200 else f"http://ddragon.leagueoflegends.com/cdn/img/profileicon/{iconId}.png"
+
+  def getChampionIconUrlLol(self, championName: str):
+    url = f"{self.url}/riot/champion-icon/{championName}"
+    response = self.session.get(url, headers=self.header)
+    return response.json().get('url') if response.status_code == 200 else None
