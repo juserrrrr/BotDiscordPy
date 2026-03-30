@@ -17,7 +17,10 @@ class timbasService():
     if not self.bot_secret:
       raise ValueError("BOT_SECRET não configurado no arquivo .env")
 
-    self._authenticate()
+    try:
+      self._authenticate()
+    except Exception as e:
+      logger.warning(f"Autenticação inicial falhou, bot continuará sem token: {e}")
 
   def _authenticate(self):
     try:
@@ -38,6 +41,8 @@ class timbasService():
 
   def _request(self, method: str, path: str, **kwargs):
     url = f"{self.url}{path}"
+    if not self._token:
+      self._authenticate()
     response = self.session.request(method, url, headers=self._headers(), **kwargs)
     if response.status_code == 401:
       logger.info("Token expirado, renovando...")
