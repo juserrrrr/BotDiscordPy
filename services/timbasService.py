@@ -97,3 +97,29 @@ class timbasService():
   def getChampionIconUrlLol(self, championName: str):
     response = self._request("GET", f"/riot/champion-icon/{championName}")
     return response.json().get("url") if response.status_code == 200 else None
+
+  # ─── Lobby (Custom Match) ─────────────────────────────────────────────────
+
+  def createLobby(self, data: dict):
+    return self._request("POST", "/leagueMatch/online", json=data)
+
+  def getLobby(self, lobby_id: str):
+    return self._request("GET", f"/leagueMatch/{lobby_id}")
+
+  def joinLobby(self, lobby_id: str, data: dict):
+    return self._request("POST", f"/leagueMatch/{lobby_id}/join", json=data)
+
+  def leaveLobby(self, lobby_id: str, discord_id: str):
+    return self._request("DELETE", f"/leagueMatch/{lobby_id}/leave", json={"discordId": discord_id})
+
+  def drawLobby(self, lobby_id: str, requester_discord_id: str):
+    return self._request("POST", f"/leagueMatch/{lobby_id}/draw", json={"requesterDiscordId": requester_discord_id})
+
+  def startLobby(self, lobby_id: str, requester_discord_id: str):
+    return self._request("POST", f"/leagueMatch/{lobby_id}/start", json={"requesterDiscordId": requester_discord_id})
+
+  def finishLobby(self, lobby_id: str, requester_discord_id: str, winner: str):
+    return self._request("POST", f"/leagueMatch/{lobby_id}/finish", json={"requesterDiscordId": requester_discord_id, "winner": winner})
+
+  def getActiveLobbies(self, server_id: str):
+    return self._request("GET", f"/leagueMatch/server/{server_id}/active")

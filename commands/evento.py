@@ -9,7 +9,12 @@ import time
 from base.BaseViews import BaseView
 from base.BaseModal import BaseModal
 from commands.utilsPerson.ui import CustomMatchView
+from commands.utilsPerson.ui_online import OnlineLobbyView
 from commands.utilsPerson.helpers import generate_league_embed_text
+from services.timbasService import timbasService
+
+WEB_URL = os.getenv("WEB_URL", "http://localhost:3000")
+MATCH_FORMAT_MAP = {0: "ALEATORIO", 1: "LIVRE", 3: "ALEATORIO_COMPLETO"}
 
 
 EVENTS_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'events.json')
@@ -221,11 +226,11 @@ class EscolherFormatoView(BaseView):
         modo_names = {1: "Online", 0: "Offline"}
 
         match_format = Choice(name=formato_names[self.formato_value], value=self.formato_value)
-        online_mode = Choice(name=modo_names[self.modo_value], value=self.modo_value)
+        online_mode  = Choice(name=modo_names[self.modo_value],    value=self.modo_value)
 
         guild = interaction.guild
         required_voice = {"| 🕘 | AGUARDANDO", "LADO [ |🔵| ]", "LADO [ |🔴| ]"}
-        voice_map = {ch.name: ch for ch in guild.voice_channels if ch.name in required_voice}
+        voice_map    = {ch.name: ch for ch in guild.voice_channels if ch.name in required_voice}
         text_channel = discord.utils.get(guild.text_channels, name="custom_game")
 
         missing = required_voice - set(voice_map.keys())
@@ -243,11 +248,71 @@ class EscolherFormatoView(BaseView):
                 pass
             return
 
+        waiting_ch = voice_map["| 🕘 | AGUARDANDO"]
+        blue_ch    = voice_map["LADO [ |🔵| ]"]
+        red_ch     = voice_map["LADO [ |🔴| ]"]
+
+        # ── ONLINE: backend lobby ──────────────────────────────────────────────
+        if online_mode.value == 1:
+            try:
+                timbas = timbasService()
+                payload = {
+                    "discordServerId": str(guild.id),
+                    "creatorDiscordId": str(self.creator.id),
+                    "matchFormat": MATCH_FORMAT_MAP.get(self.formato_value, "ALEATORIO"),
+                    "onlineMode": True,
+                }
+                response = timbas.createLobby(payload)
+                if not response or response.status_code != 201:
+                    error = response.json().get("message", "Erro") if response else "Sem resposta da API"
+                    msg = await interaction.followup.send(f"❌ Erro ao criar partida: {error}", ephemeral=True, wait=True)
+                    await asyncio.sleep(5)
+                    await msg.delete()
+                    return
+
+                lobby_id   = response.json()["id"]
+                web_url    = f"{WEB_URL}/dashboard/partida/{lobby_id}"
+
+                view = OnlineLobbyView(
+                    creator=self.creator,
+                    lobby_id=lobby_id,
+                    match_format=match_format,
+                    waiting_channel=waiting_ch,
+                    blue_channel=blue_ch,
+                    red_channel=red_ch,
+                )
+
+                embed_text = generate_league_embed_text(blue_team=[], red_team=[], match_format=match_format.name, online_mode=online_mode.name)
+                embed = discord.Embed(description=f"```{embed_text}```", color=discord.Color.blue())
+                embed.set_footer(text="Aguardando jogadores... 0/10")
+                embed.set_image(url="attachment://timbasQueueGif.gif")
+                embed.add_field(name="🔴 Ao Vivo", value=f"[Acompanhe em tempo real]({web_url})", inline=False)
+
+                await text_channel.send(embed=embed, view=view, file=discord.File('./images/timbasQueueGif.gif'))
+
+                if self.message:
+                    try:
+                        await self.message.delete()
+                    except Exception:
+                        pass
+
+                msg = await interaction.followup.send(f"✅ Partida criada! Ver em {text_channel.mention}\n🌐 {web_url}", ephemeral=True, wait=True)
+                await asyncio.sleep(8)
+                await msg.delete()
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Erro ao criar lobby online (evento): {e}")
+                msg = await interaction.followup.send("❌ Erro inesperado. Tente novamente.", ephemeral=True, wait=True)
+                await asyncio.sleep(5)
+                await msg.delete()
+            return
+
+        # ── OFFLINE: CustomMatchView em memória ────────────────────────────────
         view = CustomMatchView(
             creator=self.creator,
-            waiting_channel=voice_map["| 🕘 | AGUARDANDO"],
-            blue_channel=voice_map["LADO [ |🔵| ]"],
-            red_channel=voice_map["LADO [ |🔴| ]"],
+            waiting_channel=waiting_ch,
+            blue_channel=blue_ch,
+            red_channel=red_ch,
             online_mode=online_mode,
             match_format=match_format,
         )

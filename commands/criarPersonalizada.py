@@ -2,9 +2,14 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import asyncio
+import os
 
 from .utilsPerson.ui import CustomMatchView, ConfirmChannelCreationView
+from .utilsPerson.ui_online import OnlineLobbyView
 from .utilsPerson.helpers import generate_league_embed_text
+from services.timbasService import timbasService
+
+WEB_URL = os.getenv("WEB_URL", "http://localhost:3000")
 
 class MockVoice:
     def __init__(self):
@@ -145,9 +150,77 @@ class CriarPerson(commands.Cog):
             return
 
         waiting_channel = voice_channels["| 🕘 | AGUARDANDO"]
-        blue_channel = voice_channels["LADO [ |🔵| ]"]
-        red_channel = voice_channels["LADO [ |🔴| ]"]
+        blue_channel    = voice_channels["LADO [ |🔵| ]"]
+        red_channel     = voice_channels["LADO [ |🔴| ]"]
 
+        # ── Se ainda não respondeu, defer ──────────────────────────────────────
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
+
+        # Modo Online -> Cria lobby no backend, usa OnlineLobbyView
+        if online_mode.value == 1:
+            try:
+                timbas = timbasService()
+                MATCH_FORMAT_MAP = {0: "ALEATORIO", 1: "LIVRE", 3: "ALEATORIO_COMPLETO"}
+                payload = {
+                    "discordServerId": str(interaction.guild.id),
+                    "creatorDiscordId": str(interaction.user.id),
+                    "matchFormat": MATCH_FORMAT_MAP.get(match_format.value, "ALEATORIO"),
+                }
+                response = timbas.createLobby(payload)
+                if not response or response.status_code != 201:
+                    error = response.json().get("message", "Erro") if response else "Sem resposta da API"
+                    msg = await interaction.followup.send(f"❌ Erro ao criar partida no servidor: {error}", ephemeral=True, wait=True)
+                    await asyncio.sleep(5)
+                    await msg.delete()
+                    return
+
+                lobby_data = response.json()
+                lobby_id = lobby_data["id"]
+
+                view = OnlineLobbyView(
+                    creator=interaction.user,
+                    lobby_id=lobby_id,
+                    match_format=match_format,
+                    waiting_channel=waiting_channel,
+                    blue_channel=blue_channel,
+                    red_channel=red_channel,
+                    debug=debug,
+                )
+
+                initial_embed_text = generate_league_embed_text(
+                    blue_team=[], red_team=[],
+                    match_format=match_format.name,
+                    online_mode=online_mode.name
+                )
+                embed = discord.Embed(description=f"```{initial_embed_text}```", color=discord.Color.blue())
+                embed.set_footer(text="Aguardando jogadores... 0/10")
+                embed.set_image(url="attachment://timbasQueueGif.gif")
+
+                web_url = f"{WEB_URL}/dashboard/partida/{lobby_id}"
+                embed.add_field(name="🔴 Ao Vivo", value=f"[Acompanhe em tempo real]({web_url})", inline=False)
+
+                await text_channel.send(embed=embed, view=view, file=discord.File('./images/timbasQueueGif.gif'))
+
+                message = await interaction.followup.send(
+                    f"✅ Partida criada! Veja em {text_channel.mention}\n🌐 Ao vivo: {web_url}",
+                    ephemeral=True, wait=True
+                )
+                await asyncio.sleep(8)
+                try:
+                    await message.delete()
+                except:
+                    pass
+
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Erro ao criar lobby online: {e}")
+                msg = await interaction.followup.send("❌ Erro inesperado ao criar a partida. Tente novamente.", ephemeral=True, wait=True)
+                await asyncio.sleep(5)
+                await msg.delete()
+            return
+
+        # Modo Offline -> Lógica original no bot (CustomMatchView)
         view = CustomMatchView(
             creator=interaction.user,
             waiting_channel=waiting_channel,
@@ -158,67 +231,41 @@ class CriarPerson(commands.Cog):
             debug=debug
         )
 
-        # Se ainda não respondeu (canais já existiam), defer antes de operações demoradas
-        if not interaction.response.is_done():
-            await interaction.response.defer(ephemeral=True)
-
         if debug:
-            # Hardcoded Discord IDs provided by the user for debug mode
             default_discord_ids = [
                 "919276824578646068", "352240724693090305", "373887997826957312",
                 "1089165750993948774", "209825857815052288", "343492133644140544",
                 "191630723935895553", "214397364163706880", "430165932963266561",
                 "635277051439611914"
             ]
-            player_ids = default_discord_ids
-
             confirmed_players = []
-            for i, p_id in enumerate(player_ids):
+            for i, p_id in enumerate(default_discord_ids):
                 try:
                     user_obj = await self.client.fetch_user(int(p_id))
                     confirmed_players.append(user_obj)
                 except (discord.NotFound, ValueError):
                     confirmed_players.append(MockUser(name=f"TestPlayer{i+1}", id=int(p_id)))
-            
+
             view.confirmed_players = confirmed_players
             view.update_buttons()
 
-        if not view.blue_team and not view.red_team:
-            blue_display = view.confirmed_players[:5]
-            red_display = view.confirmed_players[5:]
-        else:
-            blue_display = view.blue_team
-            red_display = view.red_team
-        
+        blue_display = view.blue_team if view.blue_team else view.confirmed_players[:5]
+        red_display  = view.red_team  if view.red_team  else view.confirmed_players[5:]
+
         initial_embed_text = generate_league_embed_text(
-            blue_team=blue_display,
-            red_team=red_display,
-            match_format=match_format.name,
-            online_mode=online_mode.name
+            blue_team=blue_display, red_team=red_display,
+            match_format=match_format.name, online_mode=online_mode.name
         )
-        
-        embed = discord.Embed(
-            description=f"```{initial_embed_text}```",
-            color=discord.Color.blue()
-        )
+        embed = discord.Embed(description=f"```{initial_embed_text}```", color=discord.Color.blue())
         embed.set_footer(text="Aguardando jogadores...")
         embed.set_image(url="attachment://timbasQueueGif.gif")
 
-        # Envia a mensagem no canal custom_game
-        await text_channel.send(
-            embed=embed,
-            view=view,
-            file=discord.File('./images/timbasQueueGif.gif')
-        )
+        await text_channel.send(embed=embed, view=view, file=discord.File('./images/timbasQueueGif.gif'))
 
-        # Envia resposta usando followup (defer ou manage_channels já respondeu)
         message = await interaction.followup.send(
             f"Partida criada com sucesso! Veja em {text_channel.mention}",
-            ephemeral=True,
-            wait=True
+            ephemeral=True, wait=True
         )
-        # Deleta a mensagem após 5 segundos
-        import asyncio
         await asyncio.sleep(5)
         try:
             await message.delete()
