@@ -149,7 +149,7 @@ class OnlineLobbyView(BaseView):
 
 class OnlineJoinButton(ui.Button):
     def __init__(self, lobby_view: OnlineLobbyView):
-        super().__init__(label="Entrar", style=discord.ButtonStyle.green, emoji="✅", disabled=lobby_view._started or parent._finished)
+        super().__init__(label="Entrar", style=discord.ButtonStyle.green, emoji="✅", disabled=lobby_view._started or lobby_view._finished)
         self.lobby_view = lobby_view
 
     async def callback(self, interaction: discord.Interaction):
@@ -196,7 +196,7 @@ class OnlineJoinButton(ui.Button):
 
 class OnlineLeaveButton(ui.Button):
     def __init__(self, lobby_view: OnlineLobbyView):
-        super().__init__(label="Sair", style=discord.ButtonStyle.red, emoji="🚪", disabled=lobby_view._started or parent._finished)
+        super().__init__(label="Sair", style=discord.ButtonStyle.red, emoji="🚪", disabled=lobby_view._started or lobby_view._finished)
         self.lobby_view = lobby_view
 
     async def callback(self, interaction: discord.Interaction):
@@ -223,7 +223,7 @@ class OnlineLeaveButton(ui.Button):
 
 class OnlineDrawButton(ui.Button):
     def __init__(self, lobby_view: OnlineLobbyView):
-        disabled = parent._started or parent._finished or parent.match_format.value == 1  # Livre não sorteia
+        disabled = lobby_view._started or lobby_view._finished or lobby_view.match_format.value == 1  # Livre não sorteia
         super().__init__(label="Sortear", style=discord.ButtonStyle.primary, emoji="🎲", disabled=disabled)
         self.lobby_view = lobby_view
 
@@ -252,7 +252,7 @@ class OnlineDrawButton(ui.Button):
 
 class OnlineStartButton(ui.Button):
     def __init__(self, lobby_view: OnlineLobbyView):
-        super().__init__(label="Iniciar", style=discord.ButtonStyle.success, emoji="▶", disabled=lobby_view._started or parent._finished)
+        super().__init__(label="Iniciar", style=discord.ButtonStyle.success, emoji="▶", disabled=lobby_view._started or lobby_view._finished)
         self.lobby_view = lobby_view
 
     async def callback(self, interaction: discord.Interaction):
