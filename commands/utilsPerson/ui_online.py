@@ -136,8 +136,14 @@ class OnlineLobbyView(BaseView):
                 return {"user": _U(), "position": pos}
             return _U()
 
-        blue_display = [player_to_embed(p) for p in blue_team] if blue_team else []
-        red_display  = [player_to_embed(p) for p in red_team]  if red_team  else []
+        if blue_team or red_team:
+            # Times já sorteados — mostra a divisão real
+            blue_display = [player_to_embed(p) for p in blue_team]
+            red_display  = [player_to_embed(p) for p in red_team]
+        else:
+            # Ainda na fila — distribui visualmente: 1-5 no azul, 6-10 no vermelho
+            blue_display = [player_to_embed(p) for p in players[:5]]
+            red_display  = [player_to_embed(p) for p in players[5:10]]
 
         winner_side = None
         if status == "FINISHED":
