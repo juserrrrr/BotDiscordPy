@@ -77,27 +77,34 @@ class OnlineLobbyView(BaseView):
         import aiohttp
         import json as _json
         url = f"{os.getenv('TIMBAS_API_URL')}/leagueMatch/{self.lobby_id}/events"
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=aiohttp.ClientTimeout(total=3600)) as resp:
-                    async for line in resp.content:
-                        decoded = line.decode('utf-8').strip()
-                        if not decoded.startswith('data:'):
-                            continue
-                        try:
-                            data = _json.loads(decoded[5:].strip())
-                            event_type = data.get('type')
-                            payload = data.get('payload', {})
-                            if event_type in ('player_joined', 'player_left', 'teams_drawn', 'match_started', 'match_finished', 'state'):
-                                await self._update_embed_direct(payload)
-                            if event_type in ('match_finished', 'match_expired') or payload.get('status') in ('FINISHED', 'EXPIRED'):
-                                break
-                        except Exception as e:
-                            logger.error(f"SSE parse error: {e}")
-        except asyncio.CancelledError:
-            pass
-        except Exception as e:
-            logger.error(f"SSE listener error for lobby {self.lobby_id}: {e}")
+        while not self._finished:
+            try:
+                # sock_read = 45 used because server sends heartbeat every 25s.
+                async with aiohttp.ClientSession() as session:
+                    timeout = aiohttp.ClientTimeout(total=None, sock_read=45)
+                    async with session.get(url, timeout=timeout) as resp:
+                        async for line in resp.content:
+                            decoded = line.decode('utf-8').strip()
+                            if not decoded or not decoded.startswith('data:'):
+                                continue
+                            try:
+                                data = _json.loads(decoded[5:].strip())
+                                event_type = data.get('type')
+                                payload = data.get('payload', {})
+                                if event_type in ('player_joined', 'player_left', 'teams_drawn', 'match_started', 'match_finished', 'state'):
+                                    await self._update_embed_direct(payload)
+                                if event_type in ('match_finished', 'match_expired') or payload.get('status') in ('FINISHED', 'EXPIRED'):
+                                    self._finished = True
+                                    break
+                            except Exception as e:
+                                logger.error(f"SSE parse error: {e}")
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"SSE listener error for lobby {self.lobby_id}, retrying in 5s: {e}")
+            
+            if not self._finished:
+                await asyncio.sleep(5)
 
     async def _update_embed_direct(self, lobby: dict):
         """Update the Discord message embed directly (used by SSE listener)."""
