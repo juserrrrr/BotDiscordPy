@@ -132,7 +132,7 @@ class OnlineLobbyView(BaseView):
         embed.set_footer(text=footer_map.get(status, ""))
         embed.set_image(url="attachment://timbasQueueGif.gif")
 
-        web_url = f"{WEB_URL}/dashboard/partida/{self.lobby_id}"
+        web_url = f"{WEB_URL}/dashboard/match/{self.lobby_id}"
         embed.add_field(name="🔴 Ao Vivo", value=f"[Acompanhe em tempo real]({web_url})", inline=False)
 
         self._started = status == "STARTED"

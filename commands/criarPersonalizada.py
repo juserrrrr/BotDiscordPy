@@ -197,7 +197,7 @@ class CriarPerson(commands.Cog):
                 embed.set_footer(text="Aguardando jogadores... 0/10")
                 embed.set_image(url="attachment://timbasQueueGif.gif")
 
-                web_url = f"{WEB_URL}/dashboard/partida/{lobby_id}"
+                web_url = f"{WEB_URL}/dashboard/match/{lobby_id}"
                 embed.add_field(name="🔴 Ao Vivo", value=f"[Acompanhe em tempo real]({web_url})", inline=False)
 
                 await text_channel.send(embed=embed, view=view, file=discord.File('./images/timbasQueueGif.gif'))

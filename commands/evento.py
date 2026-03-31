@@ -271,7 +271,7 @@ class EscolherFormatoView(BaseView):
                     return
 
                 lobby_id   = response.json()["id"]
-                web_url    = f"{WEB_URL}/dashboard/partida/{lobby_id}"
+                web_url    = f"{WEB_URL}/dashboard/match/{lobby_id}"
 
                 view = OnlineLobbyView(
                     creator=self.creator,
