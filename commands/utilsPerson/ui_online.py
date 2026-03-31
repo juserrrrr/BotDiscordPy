@@ -148,9 +148,9 @@ class OnlineLobbyView(BaseView):
 # ─── Botões ──────────────────────────────────────────────────────────────────
 
 class OnlineJoinButton(ui.Button):
-    def __init__(self, parent: OnlineLobbyView):
-        super().__init__(label="Entrar", style=discord.ButtonStyle.green, emoji="✅", disabled=parent._started or parent._finished)
-        self.parent = parent
+    def __init__(self, lobby_view: OnlineLobbyView):
+        super().__init__(label="Entrar", style=discord.ButtonStyle.green, emoji="✅", disabled=lobby_view._started or parent._finished)
+        self.lobby_view = lobby_view
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
@@ -176,14 +176,14 @@ class OnlineJoinButton(ui.Button):
 
         avatar_hash = user.avatar.key if user.avatar else ""
         payload = {"discordId": str(user.id), "name": user.name, "avatar": avatar_hash}
-        response = timbas.joinLobby(self.parent.lobby_id, payload)
+        response = timbas.joinLobby(self.lobby_view.lobby_id, payload)
 
         if response and response.status_code == 201:
             # Armazena user discord para mover de canal depois
-            self.parent._discord_users[str(user.id)] = user
-            PlayerService.store_original_channel(user, self.parent.original_voice_channels)
-            await PlayerService.move_player_to_channel(user, self.parent.waiting_channel)
-            await self.parent.refresh_embed(interaction)
+            self.lobby_view._discord_users[str(user.id)] = user
+            PlayerService.store_original_channel(user, self.lobby_view.original_voice_channels)
+            await PlayerService.move_player_to_channel(user, self.lobby_view.waiting_channel)
+            await self.lobby_view.refresh_embed(interaction)
             msg = await interaction.followup.send("✅ Você entrou na partida!", ephemeral=True)
             await asyncio.sleep(3)
             await msg.delete()
@@ -195,22 +195,22 @@ class OnlineJoinButton(ui.Button):
 
 
 class OnlineLeaveButton(ui.Button):
-    def __init__(self, parent: OnlineLobbyView):
-        super().__init__(label="Sair", style=discord.ButtonStyle.red, emoji="🚪", disabled=parent._started or parent._finished)
-        self.parent = parent
+    def __init__(self, lobby_view: OnlineLobbyView):
+        super().__init__(label="Sair", style=discord.ButtonStyle.red, emoji="🚪", disabled=lobby_view._started or parent._finished)
+        self.lobby_view = lobby_view
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         user = interaction.user
         timbas = timbasService()
-        response = timbas.leaveLobby(self.parent.lobby_id, str(user.id))
+        response = timbas.leaveLobby(self.lobby_view.lobby_id, str(user.id))
 
         if response and response.status_code in (200, 201):
-            if user.voice and user.id in self.parent.original_voice_channels:
-                original_channel = self.parent.original_voice_channels[user.id]
+            if user.voice and user.id in self.lobby_view.original_voice_channels:
+                original_channel = self.lobby_view.original_voice_channels[user.id]
                 await PlayerService.move_player_to_channel(user, original_channel)
-                PlayerService.remove_original_channel(user.id, self.parent.original_voice_channels)
-            await self.parent.refresh_embed(interaction)
+                PlayerService.remove_original_channel(user.id, self.lobby_view.original_voice_channels)
+            await self.lobby_view.refresh_embed(interaction)
             msg = await interaction.followup.send("🚪 Você saiu da partida.", ephemeral=True)
             await asyncio.sleep(3)
             await msg.delete()
@@ -222,24 +222,24 @@ class OnlineLeaveButton(ui.Button):
 
 
 class OnlineDrawButton(ui.Button):
-    def __init__(self, parent: OnlineLobbyView):
+    def __init__(self, lobby_view: OnlineLobbyView):
         disabled = parent._started or parent._finished or parent.match_format.value == 1  # Livre não sorteia
         super().__init__(label="Sortear", style=discord.ButtonStyle.primary, emoji="🎲", disabled=disabled)
-        self.parent = parent
+        self.lobby_view = lobby_view
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
-        if interaction.user != self.parent.creator:
+        if interaction.user != self.lobby_view.creator:
             msg = await interaction.followup.send("❌ Apenas o criador pode sortear.", ephemeral=True)
             await asyncio.sleep(5)
             await msg.delete()
             return
 
         timbas = timbasService()
-        response = timbas.drawLobby(self.parent.lobby_id, str(self.parent.creator.id))
+        response = timbas.drawLobby(self.lobby_view.lobby_id, str(self.lobby_view.creator.id))
 
         if response and response.status_code in (200, 201):
-            await self.parent.refresh_embed(interaction)
+            await self.lobby_view.refresh_embed(interaction)
             msg = await interaction.followup.send("🎲 Times sorteados!", ephemeral=True)
             await asyncio.sleep(3)
             await msg.delete()
@@ -251,37 +251,37 @@ class OnlineDrawButton(ui.Button):
 
 
 class OnlineStartButton(ui.Button):
-    def __init__(self, parent: OnlineLobbyView):
-        super().__init__(label="Iniciar", style=discord.ButtonStyle.success, emoji="▶", disabled=parent._started or parent._finished)
-        self.parent = parent
+    def __init__(self, lobby_view: OnlineLobbyView):
+        super().__init__(label="Iniciar", style=discord.ButtonStyle.success, emoji="▶", disabled=lobby_view._started or parent._finished)
+        self.lobby_view = lobby_view
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
-        if interaction.user != self.parent.creator:
+        if interaction.user != self.lobby_view.creator:
             msg = await interaction.followup.send("❌ Apenas o criador pode iniciar.", ephemeral=True)
             await asyncio.sleep(5)
             await msg.delete()
             return
 
         timbas = timbasService()
-        response = timbas.startLobby(self.parent.lobby_id, str(self.parent.creator.id))
+        response = timbas.startLobby(self.lobby_view.lobby_id, str(self.lobby_view.creator.id))
 
         if response and response.status_code in (200, 201):
             lobby = response.json()
             # Move jogadores para os canais dos times (lógica exclusiva do Discord)
-            if not self.parent.debug and self.parent.blue_channel and self.parent.red_channel:
+            if not self.lobby_view.debug and self.lobby_view.blue_channel and self.lobby_view.red_channel:
                 blue_team = lobby.get("blueTeam", [])
                 red_team  = lobby.get("redTeam", [])
                 for p in blue_team:
-                    discord_user = self.parent._discord_users.get(p.get("discordId"))
+                    discord_user = self.lobby_view._discord_users.get(p.get("discordId"))
                     if discord_user:
-                        await PlayerService.move_player_to_channel(discord_user, self.parent.blue_channel)
+                        await PlayerService.move_player_to_channel(discord_user, self.lobby_view.blue_channel)
                 for p in red_team:
-                    discord_user = self.parent._discord_users.get(p.get("discordId"))
+                    discord_user = self.lobby_view._discord_users.get(p.get("discordId"))
                     if discord_user:
-                        await PlayerService.move_player_to_channel(discord_user, self.parent.red_channel)
+                        await PlayerService.move_player_to_channel(discord_user, self.lobby_view.red_channel)
 
-            await self.parent.refresh_embed(interaction)
+            await self.lobby_view.refresh_embed(interaction)
             msg = await interaction.followup.send("▶ Partida iniciada!", ephemeral=True)
             await asyncio.sleep(3)
             await msg.delete()
@@ -293,19 +293,19 @@ class OnlineStartButton(ui.Button):
 
 
 class OnlineFinishButton(ui.Button):
-    def __init__(self, parent: OnlineLobbyView):
-        super().__init__(label="Finalizar", style=discord.ButtonStyle.danger, emoji="🏁", disabled=parent._finished)
-        self.parent = parent
+    def __init__(self, lobby_view: OnlineLobbyView):
+        super().__init__(label="Finalizar", style=discord.ButtonStyle.danger, emoji="🏁", disabled=lobby_view._finished)
+        self.lobby_view = lobby_view
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
-        if interaction.user != self.parent.creator:
+        if interaction.user != self.lobby_view.creator:
             msg = await interaction.followup.send("❌ Apenas o criador pode finalizar.", ephemeral=True)
             await asyncio.sleep(5)
             await msg.delete()
             return
 
-        view = OnlineWinnerSelectView(self.parent, interaction.message)
+        view = OnlineWinnerSelectView(self.lobby_view, interaction.message)
         msg = await interaction.followup.send("🏆 Quem venceu a partida?", view=view, ephemeral=True, wait=True)
         view.message = msg
 
@@ -320,8 +320,8 @@ class OnlineWinnerSelectView(BaseView):
 
 
 class OnlineWinnerSelect(ui.Select):
-    def __init__(self, parent: OnlineWinnerSelectView):
-        self.parent = parent
+    def __init__(self, winner_view: OnlineWinnerSelectView):
+        self.winner_view = winner_view
         options = [
             discord.SelectOption(label="Time Azul", value="BLUE", emoji="🔵"),
             discord.SelectOption(label="Time Vermelho", value="RED", emoji="🔴"),
@@ -330,30 +330,30 @@ class OnlineWinnerSelect(ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
-        if interaction.user != self.parent.lobby_view.creator:
+        if interaction.user != self.winner_view.lobby_view.creator:
             await interaction.followup.send("❌ Apenas o criador pode selecionar o vencedor.", ephemeral=True)
             return
 
         winner = self.values[0]  # "BLUE" or "RED"
         timbas = timbasService()
         response = timbas.finishLobby(
-            self.parent.lobby_view.lobby_id,
-            str(self.parent.lobby_view.creator.id),
+            self.winner_view.lobby_view.lobby_id,
+            str(self.winner_view.lobby_view.creator.id),
             winner
         )
 
         if response and response.status_code in (200, 201):
             # Restaura canais de voz originais
-            if not self.parent.lobby_view.debug:
-                all_players = list(self.parent.lobby_view._discord_users.values())
+            if not self.winner_view.lobby_view.debug:
+                all_players = list(self.winner_view.lobby_view._discord_users.values())
                 await PlayerService.restore_players_to_original_channels(
                     all_players,
-                    self.parent.lobby_view.original_voice_channels
+                    self.winner_view.lobby_view.original_voice_channels
                 )
 
-            await self.parent.lobby_view.refresh_embed(interaction)
-            self.parent.lobby_view._finished = True
-            self.parent.lobby_view.update_buttons()
+            await self.winner_view.lobby_view.refresh_embed(interaction)
+            self.winner_view.lobby_view._finished = True
+            self.winner_view.lobby_view.update_buttons()
 
             try:
                 await interaction.delete_original_response()
