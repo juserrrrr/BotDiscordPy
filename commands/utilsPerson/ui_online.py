@@ -238,7 +238,7 @@ class OnlineJoinButton(ui.Button):
             await asyncio.sleep(3)
             await msg.delete()
         else:
-            error = response.json().get("message", "Erro desconhecido") if response else "Sem resposta da API"
+            error = response.json().get("message", "Erro desconhecido") if response is not None else "Sem resposta da API"
             msg = await interaction.followup.send(f"❌ {error}", ephemeral=True)
             await asyncio.sleep(5)
             await msg.delete()
@@ -265,7 +265,7 @@ class OnlineLeaveButton(ui.Button):
             await asyncio.sleep(3)
             await msg.delete()
         else:
-            error = response.json().get("message", "Erro") if response else "Sem resposta da API"
+            error = response.json().get("message", "Erro") if response is not None else "Sem resposta da API"
             msg = await interaction.followup.send(f"❌ {error}", ephemeral=True)
             await asyncio.sleep(5)
             await msg.delete()
@@ -294,7 +294,7 @@ class OnlineDrawButton(ui.Button):
             await asyncio.sleep(3)
             await msg.delete()
         else:
-            error = response.json().get("message", "Erro") if response else "Sem resposta da API"
+            error = response.json().get("message", "Erro") if response is not None else "Sem resposta da API"
             msg = await interaction.followup.send(f"❌ {error}", ephemeral=True)
             await asyncio.sleep(5)
             await msg.delete()
@@ -336,7 +336,7 @@ class OnlineStartButton(ui.Button):
             await asyncio.sleep(3)
             await msg.delete()
         else:
-            error = response.json().get("message", "Erro") if response else "Sem resposta da API"
+            error = response.json().get("message", "Erro") if response is not None else "Sem resposta da API"
             msg = await interaction.followup.send(f"❌ {error}", ephemeral=True)
             await asyncio.sleep(5)
             await msg.delete()
@@ -411,5 +411,5 @@ class OnlineWinnerSelect(ui.Select):
             except Exception:
                 pass
         else:
-            error = response.json().get("message", "Erro") if response else "Sem resposta da API"
+            error = response.json().get("message", "Erro") if response is not None else "Sem resposta da API"
             await interaction.followup.send(f"❌ {error}", ephemeral=True)
