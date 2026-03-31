@@ -43,20 +43,20 @@ class CriarPerson(commands.Cog):
         # Se tudo já existe, retorna os canais
         if not missing_voice_channels and not missing_text_channel:
             voice_channels = {name: discord.utils.get(guild.voice_channels, name=name) for name in required_voice_channels}
-            # Não precisa responder aqui, apenas retornar
             return True, voice_channels, existing_text_channel
 
-        # Pergunta se deseja criar os canais faltantes
+        # Pergunta se deseja criar os canais faltantes (interação já deferida, usa followup)
         view = ConfirmChannelCreationView()
-        await interaction.response.send_message(
+        prompt_msg = await interaction.followup.send(
             "Canais para a partida não encontrados. Deseja criá-los?",
             view=view,
-            ephemeral=True
+            ephemeral=True,
+            wait=True,
         )
         await view.wait()
 
         if view.result:
-            await interaction.edit_original_response(content="Criando canais...", view=None)
+            await prompt_msg.edit(content="Criando canais...", view=None)
 
             # Buscar a categoria (pode ter variações no nome)
             category = None
@@ -97,19 +97,16 @@ class CriarPerson(commands.Cog):
             else:
                 text_channel = existing_text_channel
 
-            # Apaga a mensagem "Criando canais..." após 5 segundos
-            await interaction.edit_original_response(content="Canais criados com sucesso!", view=None)
-            # Agenda a deleção da mensagem
-            import asyncio
+            await prompt_msg.edit(content="Canais criados com sucesso!", view=None)
             await asyncio.sleep(5)
             try:
-                await interaction.delete_original_response()
+                await prompt_msg.delete()
             except:
-                pass  # Ignora se a mensagem já foi deletada
+                pass
 
             return True, created_voice_channels, text_channel
         else:
-            await interaction.edit_original_response(content="Criação de canais cancelada.", view=None)
+            await prompt_msg.edit(content="Criação de canais cancelada.", view=None)
             return False, None, None
 
     @app_commands.command(name='criarperson', description="Cria uma partida personalizada de League of Legends.")
@@ -145,6 +142,9 @@ class CriarPerson(commands.Cog):
             )
             return
 
+        # Defer imediatamente para garantir que o Discord não expire a interação
+        await interaction.response.defer(ephemeral=True)
+
         success, voice_channels, text_channel = await self.manage_channels(interaction)
         if not success:
             return
@@ -152,10 +152,6 @@ class CriarPerson(commands.Cog):
         waiting_channel = voice_channels["| 🕘 | AGUARDANDO"]
         blue_channel    = voice_channels["LADO [ |🔵| ]"]
         red_channel     = voice_channels["LADO [ |🔴| ]"]
-
-        # ── Se ainda não respondeu, defer ──────────────────────────────────────
-        if not interaction.response.is_done():
-            await interaction.response.defer(ephemeral=True)
 
         # Modo Online -> Cria lobby no backend, usa OnlineLobbyView
         if online_mode.value == 1:
