@@ -286,7 +286,7 @@ class EscolherFormatoView(BaseView):
                 embed = discord.Embed(description=f"```{embed_text}```", color=discord.Color.blue())
                 embed.set_footer(text="Aguardando jogadores... 0/10")
                 embed.set_image(url="attachment://timbasQueueGif.gif")
-                embed.add_field(name="🔴 Ao Vivo", value=f"[Acompanhe em tempo real]({web_url})", inline=False)
+                embed.add_field(name="\u200b", value=f"[Acompanhe pelo site]({web_url})", inline=False)
 
                 await text_channel.send(embed=embed, view=view, file=discord.File('./images/timbasQueueGif.gif'))
 

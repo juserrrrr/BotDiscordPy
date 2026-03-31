@@ -54,6 +54,8 @@ class OnlineLobbyView(BaseView):
 
         self._started = False
         self._finished = False
+        self.message: Optional[discord.Message] = None
+        self._sse_task: Optional[asyncio.Task] = None
 
         self.update_buttons()
 
@@ -66,13 +68,110 @@ class OnlineLobbyView(BaseView):
             self.add_item(OnlineStartButton(self))
         self.add_item(OnlineFinishButton(self))
 
+    def start_sse_listener(self, message: discord.Message):
+        """Start background SSE listener to keep embed in sync with backend state."""
+        self.message = message
+        self._sse_task = asyncio.create_task(self._listen_sse())
+
+    async def _listen_sse(self):
+        import aiohttp
+        import json as _json
+        url = f"{os.getenv('TIMBAS_API_URL')}/leagueMatch/{self.lobby_id}/events"
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=3600)) as resp:
+                    async for line in resp.content:
+                        decoded = line.decode('utf-8').strip()
+                        if not decoded.startswith('data:'):
+                            continue
+                        try:
+                            data = _json.loads(decoded[5:].strip())
+                            event_type = data.get('type')
+                            payload = data.get('payload', {})
+                            if event_type in ('player_joined', 'player_left', 'teams_drawn', 'match_started', 'match_finished', 'state'):
+                                await self._update_embed_direct(payload)
+                            if event_type in ('match_finished', 'match_expired') or payload.get('status') in ('FINISHED', 'EXPIRED'):
+                                break
+                        except Exception as e:
+                            logger.error(f"SSE parse error: {e}")
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.error(f"SSE listener error for lobby {self.lobby_id}: {e}")
+
+    async def _update_embed_direct(self, lobby: dict):
+        """Update the Discord message embed directly (used by SSE listener)."""
+        if not self.message:
+            return
+        embed = self._build_embed(lobby)
+        self._started = lobby.get("status") == "STARTED"
+        self._finished = lobby.get("status") in ("FINISHED", "EXPIRED")
+        self.update_buttons()
+        try:
+            await self.message.edit(embed=embed, view=self)
+        except Exception as e:
+            logger.error(f"Failed to edit message from SSE: {e}")
+
+    def _build_embed(self, lobby: dict) -> discord.Embed:
+        """Build a Discord Embed from lobby data dict."""
+        status = lobby.get("status", "WAITING")
+        players = lobby.get("queuePlayers", lobby.get("players", []))
+        teams = lobby.get("Teams", [])
+        blue_team = []
+        red_team = []
+        for team in teams:
+            if team.get("id") == lobby.get("teamBlueId"):
+                blue_team = team.get("players", [])
+            elif team.get("id") == lobby.get("teamRedId"):
+                red_team = team.get("players", [])
+        show_details = bool(blue_team or red_team)
+        format_name = FORMAT_NAME_MAP.get(self.match_format.value, "Aleatório")
+
+        def player_to_embed(p):
+            u = p.get("user", p) if isinstance(p, dict) else {}
+            pos = p.get("position") if isinstance(p, dict) else None
+            class _U:
+                name = (u.get("name", "?") if isinstance(u, dict) else str(u))[:12]
+            if pos:
+                return {"user": _U(), "position": pos}
+            return _U()
+
+        blue_display = [player_to_embed(p) for p in blue_team] if blue_team else []
+        red_display  = [player_to_embed(p) for p in red_team]  if red_team  else []
+
+        winner_side = None
+        if status == "FINISHED":
+            winner_id = lobby.get("winnerId")
+            blue_id = lobby.get("teamBlueId")
+            winner_side = "BLUE" if winner_id == blue_id else "RED"
+
+        text = generate_league_embed_text(
+            blue_team=blue_display, red_team=red_display,
+            match_format=format_name, online_mode="Online",
+            show_details=show_details, winner=winner_side,
+        )
+        footer_map = {
+            "WAITING":  f"Aguardando jogadores... {len(players)}/10",
+            "STARTED":  "Partida em andamento! 🎮",
+            "FINISHED": "Partida finalizada! 🏁",
+            "EXPIRED":  "Lobby expirado.",
+        }
+        embed = discord.Embed(description=f"```{text}```", color=discord.Color.blue())
+        embed.set_footer(text=footer_map.get(status, ""))
+        embed.set_image(url="attachment://timbasQueueGif.gif")
+        web_url = f"{WEB_URL}/dashboard/match/{self.lobby_id}"
+        embed.add_field(name="\u200b", value=f"[Acompanhe pelo site]({web_url})", inline=False)
+        return embed
+
     async def refresh_embed(self, interaction: discord.Interaction):
         """Busca estado atual do backend e atualiza o embed."""
         try:
             timbas = timbasService()
-            response = timbas.getLobby(self.lobby_id)
+            response = await asyncio.to_thread(timbas.getLobby, self.lobby_id)
             if response and response.status_code == 200:
                 lobby = response.json()
+                if self.message is None:
+                    self.message = interaction.message
                 await self._update_embed_from_lobby(interaction, lobby)
         except Exception as e:
             logger.error(f"Erro ao atualizar embed do lobby: {e}")
@@ -80,65 +179,10 @@ class OnlineLobbyView(BaseView):
     async def _update_embed_from_lobby(self, interaction: discord.Interaction, lobby: dict):
         """Monta e edita o embed com base nos dados do lobby vindos da API."""
         status = lobby.get("status", "WAITING")
-        players = lobby.get("players", [])
-        blue_team = lobby.get("blueTeam", [])
-        red_team = lobby.get("redTeam", [])
-        show_details = lobby.get("showDetails", False)
-        format_name = FORMAT_NAME_MAP.get(self.match_format.value, "Aleatório")
-
-        # Converte dicts para objetos simples compatíveis com generate_league_embed_text
-        def player_to_embed(p):
-            if isinstance(p, dict) and p.get("position"):
-                class _U:
-                    name = p.get("name", "?")[:12]
-                return {"user": _U(), "position": p.get("position", "")}
-            else:
-                class _U:
-                    name = (p.get("name", "?") if isinstance(p, dict) else str(p))[:12]
-                return _U()
-
-        blue_display = [player_to_embed(p) for p in blue_team] if blue_team else [player_to_embed(p) for p in players[:5]]
-        red_display  = [player_to_embed(p) for p in red_team]  if red_team  else [player_to_embed(p) for p in players[5:]]
-
-        text = generate_league_embed_text(
-            blue_team=blue_display,
-            red_team=red_display,
-            match_format=format_name,
-            online_mode="Online",
-            show_details=show_details,
-        )
-
-        footer_map = {
-            "WAITING":  f"Aguardando jogadores... {len(players)}/10",
-            "STARTED":  "Partida em andamento! 🎮",
-            "FINISHED": "Partida finalizada! 🏁",
-            "EXPIRED":  "Lobby expirado.",
-        }
-        winner_side = None
-        if status == "FINISHED":
-            winner_id = lobby.get("winnerId")
-            winner_side = "BLUE" if winner_id == 1 else "RED" if winner_id == 2 else None
-
-        text = generate_league_embed_text(
-            blue_team=blue_display,
-            red_team=red_display,
-            match_format=format_name,
-            online_mode="Online",
-            show_details=show_details,
-            winner=winner_side,
-        )
-
-        embed = discord.Embed(description=f"```{text}```", color=discord.Color.blue())
-        embed.set_footer(text=footer_map.get(status, ""))
-        embed.set_image(url="attachment://timbasQueueGif.gif")
-
-        web_url = f"{WEB_URL}/dashboard/match/{self.lobby_id}"
-        embed.add_field(name="🔴 Ao Vivo", value=f"[Acompanhe em tempo real]({web_url})", inline=False)
-
         self._started = status == "STARTED"
         self._finished = status in ("FINISHED", "EXPIRED")
         self.update_buttons()
-
+        embed = self._build_embed(lobby)
         try:
             await interaction.message.edit(embed=embed, view=self)
         except Exception:
@@ -165,9 +209,9 @@ class OnlineJoinButton(ui.Button):
 
         timbas = timbasService()
         # Tenta criar conta se não existir
-        user_resp = timbas.getUserByDiscordId(str(user.id))
+        user_resp = await asyncio.to_thread(timbas.getUserByDiscordId, str(user.id))
         if not user_resp or user_resp.status_code != 200:
-            create_resp = timbas.createPlayer({"discordId": str(user.id), "name": user.name})
+            create_resp = await asyncio.to_thread(timbas.createPlayer, {"discordId": str(user.id), "name": user.name})
             if not create_resp or create_resp.status_code != 201:
                 msg = await interaction.followup.send("❌ Erro ao criar conta Timbas. Tente novamente.", ephemeral=True)
                 await asyncio.sleep(5)
@@ -176,7 +220,7 @@ class OnlineJoinButton(ui.Button):
 
         avatar_hash = user.avatar.key if user.avatar else ""
         payload = {"discordId": str(user.id), "name": user.name, "avatar": avatar_hash}
-        response = timbas.joinLobby(self.lobby_view.lobby_id, payload)
+        response = await asyncio.to_thread(timbas.joinLobby, self.lobby_view.lobby_id, payload)
 
         if response and response.status_code == 201:
             # Armazena user discord para mover de canal depois
@@ -203,7 +247,7 @@ class OnlineLeaveButton(ui.Button):
         await interaction.response.defer(ephemeral=True)
         user = interaction.user
         timbas = timbasService()
-        response = timbas.leaveLobby(self.lobby_view.lobby_id, str(user.id))
+        response = await asyncio.to_thread(timbas.leaveLobby, self.lobby_view.lobby_id, str(user.id))
 
         if response and response.status_code in (200, 201):
             if user.voice and user.id in self.lobby_view.original_voice_channels:
@@ -236,7 +280,7 @@ class OnlineDrawButton(ui.Button):
             return
 
         timbas = timbasService()
-        response = timbas.drawLobby(self.lobby_view.lobby_id, str(self.lobby_view.creator.id))
+        response = await asyncio.to_thread(timbas.drawLobby, self.lobby_view.lobby_id, str(self.lobby_view.creator.id))
 
         if response and response.status_code in (200, 201):
             await self.lobby_view.refresh_embed(interaction)
@@ -264,7 +308,7 @@ class OnlineStartButton(ui.Button):
             return
 
         timbas = timbasService()
-        response = timbas.startLobby(self.lobby_view.lobby_id, str(self.lobby_view.creator.id))
+        response = await asyncio.to_thread(timbas.startLobby, self.lobby_view.lobby_id, str(self.lobby_view.creator.id))
 
         if response and response.status_code in (200, 201):
             lobby = response.json()
@@ -336,7 +380,8 @@ class OnlineWinnerSelect(ui.Select):
 
         winner = self.values[0]  # "BLUE" or "RED"
         timbas = timbasService()
-        response = timbas.finishLobby(
+        response = await asyncio.to_thread(
+            timbas.finishLobby,
             self.winner_view.lobby_view.lobby_id,
             str(self.winner_view.lobby_view.creator.id),
             winner

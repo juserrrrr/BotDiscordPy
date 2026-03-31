@@ -167,7 +167,7 @@ class CriarPerson(commands.Cog):
                     "creatorDiscordId": str(interaction.user.id),
                     "matchFormat": MATCH_FORMAT_MAP.get(match_format.value, "ALEATORIO"),
                 }
-                response = timbas.createLobby(payload)
+                response = await asyncio.to_thread(timbas.createLobby, payload)
                 if not response or response.status_code != 201:
                     error = response.json().get("message", "Erro") if response else "Sem resposta da API"
                     msg = await interaction.followup.send(f"❌ Erro ao criar partida no servidor: {error}", ephemeral=True, wait=True)
@@ -198,9 +198,10 @@ class CriarPerson(commands.Cog):
                 embed.set_image(url="attachment://timbasQueueGif.gif")
 
                 web_url = f"{WEB_URL}/dashboard/match/{lobby_id}"
-                embed.add_field(name="🔴 Ao Vivo", value=f"[Acompanhe em tempo real]({web_url})", inline=False)
+                embed.add_field(name="\u200b", value=f"[Acompanhe pelo site]({web_url})", inline=False)
 
-                await text_channel.send(embed=embed, view=view, file=discord.File('./images/timbasQueueGif.gif'))
+                lobby_message = await text_channel.send(embed=embed, view=view, file=discord.File('./images/timbasQueueGif.gif'))
+                view.start_sse_listener(lobby_message)
 
                 message = await interaction.followup.send(
                     f"✅ Partida criada! Veja em {text_channel.mention}\n🌐 Ao vivo: {web_url}",
