@@ -53,16 +53,16 @@ def generate_league_embed_text(blue_team, red_team, match_format: str, online_mo
 
     blue_pad, red_pad = 18, 18
     if winner == "BLUE":
-        blue_team_header = "TimeAzul 🏆"
-        red_team_header = "TimeVermelho"
+        blue_team_header = "Time Azul 🏆"
+        red_team_header = "Time Vermelho"
         blue_pad -= 2  # Compensa a largura do emoji
     elif winner == "RED":
-        blue_team_header = "TimeAzul"
-        red_team_header = "🏆 TimeVermelho"
+        blue_team_header = "Time Azul"
+        red_team_header = "🏆 Time Vermelho"
         red_pad -= 2  # Compensa a largura do emoji
     else:
-        blue_team_header = "TimeAzul"
-        red_team_header = "TimeVermelho"
+        blue_team_header = "Time Azul"
+        red_team_header = "Time Vermelho"
 
     lines = [
         f"{'   -----':<21}{'-*-':^3}{'-----   ':>21}",
@@ -101,11 +101,11 @@ def generate_league_embed_text(blue_team, red_team, match_format: str, online_mo
             # Formato com posição - mais legível
             # Abreviações de posição
             pos_abbrev = {
-                'Top': 'TOP',
-                'Jungle': 'JG',
-                'Mid': 'MID',
+                'TOP': 'TOP',
+                'JUNGLE': 'JG',
+                'MID': 'MID',
                 'ADC': 'ADC',
-                'Suporte': 'SUP'
+                'SUPPORT': 'SUP',
             }
             blue_pos_short = pos_abbrev.get(blue_position, blue_position[:3].upper())
             red_pos_short = pos_abbrev.get(red_position, red_position[:3].upper())

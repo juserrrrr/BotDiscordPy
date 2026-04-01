@@ -76,13 +76,28 @@ class OnlineLobbyView(BaseView):
     async def _listen_sse(self):
         import aiohttp
         import json as _json
-        url = f"{os.getenv('TIMBAS_API_URL')}/leagueMatch/{self.lobby_id}/events"
+        from urllib.parse import quote
+        base_url = f"{os.getenv('TIMBAS_API_URL')}/leagueMatch/{self.lobby_id}/events"
         while not self._finished:
             try:
+                # Authenticate before each connection attempt so token is always fresh
+                try:
+                    timbas = await asyncio.to_thread(timbasService)
+                    bot_token = timbas._token or ""
+                except Exception as e:
+                    logger.error(f"SSE: failed to get bot token for lobby {self.lobby_id}: {e}")
+                    await asyncio.sleep(5)
+                    continue
+
+                url = f"{base_url}?token={quote(bot_token)}"
                 # sock_read = 45 used because server sends heartbeat every 25s.
                 async with aiohttp.ClientSession() as session:
                     timeout = aiohttp.ClientTimeout(total=None, sock_read=45)
                     async with session.get(url, timeout=timeout) as resp:
+                        if resp.status == 401:
+                            logger.warning(f"SSE 401 for lobby {self.lobby_id}, will retry with fresh token")
+                            await asyncio.sleep(5)
+                            continue
                         async for line in resp.content:
                             decoded = line.decode('utf-8').strip()
                             if not decoded or not decoded.startswith('data:'):
@@ -167,7 +182,7 @@ class OnlineLobbyView(BaseView):
             "WAITING":  f"Aguardando jogadores... {len(players)}/10",
             "STARTED":  "Partida em andamento! 🎮",
             "FINISHED": "Partida finalizada! 🏁",
-            "EXPIRED":  "Lobby expirado.",
+            "EXPIRED":  "Partida expirada.",
         }
         embed = discord.Embed(description=f"```{text}```", color=discord.Color.blue())
         embed.set_footer(text=footer_map.get(status, ""))
@@ -327,14 +342,19 @@ class OnlineStartButton(ui.Button):
             lobby = response.json()
             # Move jogadores para os canais dos times (lógica exclusiva do Discord)
             if not self.lobby_view.debug and self.lobby_view.blue_channel and self.lobby_view.red_channel:
-                blue_team = lobby.get("blueTeam", [])
-                red_team  = lobby.get("redTeam", [])
+                teams = lobby.get("Teams", [])
+                blue_id = lobby.get("teamBlueId")
+                red_id  = lobby.get("teamRedId")
+                blue_team = next((t.get("players", []) for t in teams if t.get("id") == blue_id), [])
+                red_team  = next((t.get("players", []) for t in teams if t.get("id") == red_id), [])
                 for p in blue_team:
-                    discord_user = self.lobby_view._discord_users.get(p.get("discordId"))
+                    discord_id = p.get("user", {}).get("discordId") if isinstance(p.get("user"), dict) else None
+                    discord_user = self.lobby_view._discord_users.get(discord_id)
                     if discord_user:
                         await PlayerService.move_player_to_channel(discord_user, self.lobby_view.blue_channel)
                 for p in red_team:
-                    discord_user = self.lobby_view._discord_users.get(p.get("discordId"))
+                    discord_id = p.get("user", {}).get("discordId") if isinstance(p.get("user"), dict) else None
+                    discord_user = self.lobby_view._discord_users.get(discord_id)
                     if discord_user:
                         await PlayerService.move_player_to_channel(discord_user, self.lobby_view.red_channel)
 
