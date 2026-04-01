@@ -108,7 +108,11 @@ class OnlineLobbyView(BaseView):
                                 payload = data.get('payload', {})
                                 if event_type in ('player_joined', 'player_left', 'teams_drawn', 'match_started', 'match_finished', 'state'):
                                     await self._update_embed_direct(payload)
-                                if event_type in ('match_finished', 'match_expired') or payload.get('status') in ('FINISHED', 'EXPIRED'):
+                                if event_type == 'match_expired' or payload.get('status') == 'EXPIRED':
+                                    self._finished = True
+                                    await self._delete_message_after(5)
+                                    break
+                                if event_type == 'match_finished' or payload.get('status') == 'FINISHED':
                                     self._finished = True
                                     break
                             except Exception as e:
@@ -120,6 +124,15 @@ class OnlineLobbyView(BaseView):
             
             if not self._finished:
                 await asyncio.sleep(5)
+
+    async def _delete_message_after(self, delay: int = 5):
+        """Aguarda `delay` segundos e apaga a mensagem da partida do Discord."""
+        await asyncio.sleep(delay)
+        if self.message:
+            try:
+                await self.message.delete()
+            except Exception as e:
+                logger.error(f"Failed to delete expired match message: {e}")
 
     async def _update_embed_direct(self, lobby: dict):
         """Update the Discord message embed directly (used by SSE listener)."""
