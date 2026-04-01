@@ -101,11 +101,16 @@ def generate_league_embed_text(blue_team, red_team, match_format: str, online_mo
             # Formato com posição - mais legível
             # Abreviações de posição
             pos_abbrev = {
+                # API enum values (online matches)
                 'TOP': 'TOP',
                 'JUNGLE': 'JG',
                 'MID': 'MID',
                 'ADC': 'ADC',
                 'SUPPORT': 'SUP',
+                # Bot-generated values (offline matches)
+                'Top': 'TOP',
+                'Jungle': 'JG',
+                'Suporte': 'SUP',
             }
             blue_pos_short = pos_abbrev.get(blue_position, blue_position[:3].upper())
             red_pos_short = pos_abbrev.get(red_position, red_position[:3].upper())
