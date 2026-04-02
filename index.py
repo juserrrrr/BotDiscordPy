@@ -2,6 +2,8 @@ import os
 import asyncio
 import logging
 import sys
+from collections import defaultdict
+from datetime import datetime, timedelta
 
 import discord
 from discord.ext import commands
@@ -20,11 +22,40 @@ load_dotenv()
 
 class MyBot(commands.Bot):
     def __init__(self):
-        # Define as intents que seu bot precisa. 'all' é simples, mas pode consumir muitos recursos.
-        # Para produção, é melhor especificar apenas as intents que você realmente precisa.
-        intents = discord.Intents.all()
+        # Define as intents que seu bot precisa. Use intents específicas para melhor performance e segurança.
+        intents = discord.Intents.default()
+        intents.message_content = True  # Only if you need to read message content
+        intents.guilds = True
+        intents.members = True
+        intents.presences = True
+        intents.voice_states = True
+        # Remove intents you don't need to reduce attack surface
+        intents.typing = False
+
         # Inicializa o bot. Nenhum prefixo é necessário para bots que usam apenas slash commands.
-        super().__init__(command_prefix=None, intents=intents, help_command=None)
+        super().__init__(
+            command_prefix=None,
+            intents=intents,
+            help_command=None,
+            case_insensitive=True,
+        )
+
+        # Rate limiting per user (commands per minute)
+        self.user_commands = defaultdict(list)
+        self.rate_limit = 10  # commands per minute per user
+        self.rate_window = 60  # seconds
+
+    def check_rate_limit(self, user_id: int) -> bool:
+        """Check if user has exceeded rate limit."""
+        now = datetime.now()
+        self.user_commands[user_id] = [
+            cmd_time for cmd_time in self.user_commands[user_id]
+            if now - cmd_time < timedelta(seconds=self.rate_window)
+        ]
+        if len(self.user_commands[user_id]) >= self.rate_limit:
+            return False
+        self.user_commands[user_id].append(now)
+        return True
 
     async def load_extensions_from_dir(self, directory: str):
         """Carrega todas as extensões de um determinado diretório."""
